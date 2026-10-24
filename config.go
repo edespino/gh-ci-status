@@ -35,16 +35,16 @@ type RepoConfig struct {
 	Watch []Watch `json:"watch"`
 }
 
-// ConfigDir is $XDG_CONFIG_HOME/ci-status, else ~/.config/ci-status.
+// ConfigDir is $XDG_CONFIG_HOME/gh-ci-status, else ~/.config/gh-ci-status.
 func ConfigDir() (string, error) {
 	if x := os.Getenv("XDG_CONFIG_HOME"); x != "" {
-		return filepath.Join(x, "ci-status"), nil
+		return filepath.Join(x, "gh-ci-status"), nil
 	}
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(home, ".config", "ci-status"), nil
+	return filepath.Join(home, ".config", "gh-ci-status"), nil
 }
 
 // LoadConfig reads dir/config.json; ok is false when the file does not exist.

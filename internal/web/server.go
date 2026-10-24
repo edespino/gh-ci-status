@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-// Package web serves ci-status's local pages: the status page, Configure (what
+// Package web serves gh-ci-status's local pages: the status page, Configure (what
 // to watch in one repository) and Setup (which repositories, and whether the
 // GitHub login works).
 package web
@@ -19,7 +19,7 @@ import (
 	"sync"
 	"time"
 
-	cistatus "github.com/OWNER/ci-status"
+	cistatus "github.com/OWNER/gh-ci-status"
 )
 
 // Options configures a Server.
@@ -104,7 +104,7 @@ func (s *Server) guard(next http.Handler) http.Handler {
 			return
 		}
 		if !s.validKey(r.URL.Query().Get("key")) {
-			http.Error(rec, "forbidden: open the URL printed by 'ci-status serve'", http.StatusForbidden)
+			http.Error(rec, "forbidden: open the URL printed by 'gh ci-status serve'", http.StatusForbidden)
 			return
 		}
 		next.ServeHTTP(rec, r)

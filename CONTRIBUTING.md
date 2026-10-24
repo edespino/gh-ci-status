@@ -1,10 +1,10 @@
-# Contributing to ci-status
+# Contributing to gh-ci-status
 
 Thank you for helping. Issues and pull requests are welcome.
 
 ## Before you start
 
-For anything larger than a small fix, open an issue first to agree on the change. ci-status is
+For anything larger than a small fix, open an issue first to agree on the change. gh-ci-status is
 deliberately small: on-demand reads, no background polling, no hosted service, standard library
 only.
 
@@ -27,5 +27,5 @@ only.
 
 ## License
 
-ci-status is licensed under the [Apache License 2.0](LICENSE). Unless you state otherwise,
+gh-ci-status is licensed under the [Apache License 2.0](LICENSE). Unless you state otherwise,
 any contribution you submit is under the same license, as section 5 of the license describes.

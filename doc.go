@@ -4,7 +4,7 @@
 // workflows on chosen branches: what is red, since when, where it fails, and
 // when it was last green.
 //
-// It is the library behind the ci-status command and its local web page, and
+// It is the library behind the gh-ci-status command and its local web page, and
 // is meant for other programs too, such as an MCP server. It only reads
 // GitHub, with a token from the GitHub CLI (GHToken) or any other source.
 //

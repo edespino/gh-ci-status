@@ -20,13 +20,13 @@ func mode(t *testing.T, path string) os.FileMode {
 
 func TestConfigDirHonoursXDG(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", "/x")
-	if d, err := ConfigDir(); err != nil || d != "/x/ci-status" {
+	if d, err := ConfigDir(); err != nil || d != "/x/gh-ci-status" {
 		t.Fatalf("got %q, %v", d, err)
 	}
 	home := t.TempDir()
 	t.Setenv("XDG_CONFIG_HOME", "")
 	t.Setenv("HOME", home)
-	if d, err := ConfigDir(); err != nil || d != filepath.Join(home, ".config", "ci-status") {
+	if d, err := ConfigDir(); err != nil || d != filepath.Join(home, ".config", "gh-ci-status") {
 		t.Fatalf("got %q, %v", d, err)
 	}
 }

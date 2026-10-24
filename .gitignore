@@ -1,6 +1,6 @@
 # Build output
-/bin/
-/ci-status
+/gh-ci-status
+/dist/
 
 # Test and coverage output
 *.out

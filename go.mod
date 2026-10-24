@@ -1,3 +1,3 @@
-module github.com/OWNER/ci-status
+module github.com/OWNER/gh-ci-status
 
 go 1.23

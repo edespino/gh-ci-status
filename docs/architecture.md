@@ -1,6 +1,6 @@
-# ci-status architecture
+# gh-ci-status architecture
 
-ci-status shows the current state of chosen GitHub Actions workflow and branch pairs. It is a
+gh-ci-status is a GitHub CLI extension (`gh ci-status`) that shows the current state of chosen GitHub Actions workflow and branch pairs. It is a
 single Go binary with no dependencies beyond the standard library. It reads GitHub on demand
 with the user's GitHub CLI login and keeps its settings on the user's computer.
 
@@ -9,14 +9,14 @@ with the user's GitHub CLI login and keeps its settings on the user's computer.
 | Package | Role |
 |---|---|
 | `cistatus` (module root) | The library: GitHub client, setup checks, the saved configuration, the rules that decide a row, collection, and the JSON report. Everything a web page, a command line or an MCP server needs to give the same answers. |
-| `cmd/ci-status` | The command: `ci-status`, `--json`, `serve`, `add`, `check`, `--version`. |
+| `cmd/gh-ci-status` | The command: `gh ci-status`, `--json`, `serve`, `add`, `check`, `--version`. |
 | `internal/web` | The local web server: status, Configure and Setup pages, the page key, and what Configure keeps between visits. |
 | `internal/banner` | The logo: the wordmark for terminals, pages and the README image. |
 | `internal/fakegithub` | A fake GitHub REST API for tests. |
 
 ```mermaid
 flowchart TB
-    cmd["cmd/ci-status"] --> web["internal/web"]
+    cmd["cmd/gh-ci-status"] --> web["internal/web"]
     cmd --> lib["cistatus"]
     cmd --> banner["internal/banner"]
     web --> lib
@@ -56,7 +56,7 @@ Rows sort reds first (oldest red at the top), then unreadable, running, other, n
 
 | Action | GitHub requests |
 |---|---|
-| Status page, `ci-status`, `--json` | Per workflow file: its name. Per watch: its runs on the branch. Per red row: the jobs of its newest run. At most 8 at a time. |
+| Status page, `gh ci-status`, `--json` | Per workflow file: its name. Per watch: its runs on the branch. Per red row: the jobs of its newest run. At most 8 at a time. |
 | Configure, first visit or after Refresh | The repository, its workflow list (all pages) and two pages of recent runs, at the same time. Then one runs request per status dot, 6 at a time, from the page's script. |
 | Configure, later visits | None: the workflow list, recent runs and status dots are kept until Refresh. Failed reads are not kept. The status page replaces the kept status of each pair it reads. |
 | Setup page | The signed-in account (`/user`). |
@@ -88,9 +88,9 @@ the path and status, never the token.
 1. `serve` and `check` run `CheckGH` (the GitHub CLI is on `PATH`), `CheckLogin` (it returns a
    token) and `CheckAPI` (the token reads the signed-in account), and print each result with
    what to do when it fails. `serve` stops when one fails.
-2. With no repository set up, the status page redirects to Setup, and `ci-status` prints how
+2. With no repository set up, the status page redirects to Setup, and `gh ci-status` prints how
    to add one and exits with code 2.
-3. Setup and `ci-status add` take `owner/name` or a GitHub address, and `CheckRepo` confirms
+3. Setup and `gh ci-status add` take `owner/name` or a GitHub address, and `CheckRepo` confirms
    that the login can read it and that it has workflows. The name is saved as GitHub spells it.
 
 ## Planned: MCP server

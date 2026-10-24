@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	cistatus "github.com/OWNER/ci-status"
-	"github.com/OWNER/ci-status/internal/banner"
+	cistatus "github.com/OWNER/gh-ci-status"
+	"github.com/OWNER/gh-ci-status/internal/banner"
 )
 
 //go:embed templates/*.html

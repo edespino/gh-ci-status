@@ -4,7 +4,7 @@ package cistatus
 
 import "time"
 
-// Report is the machine-readable status: what `ci-status --json` prints and
+// Report is the machine-readable status: what `gh ci-status --json` prints and
 // what an MCP tool returns. Field names are stable; new fields may be added.
 type Report struct {
 	Generated time.Time   `json:"generated"`

@@ -16,8 +16,8 @@ import (
 	"testing"
 	"time"
 
-	cistatus "github.com/OWNER/ci-status"
-	"github.com/OWNER/ci-status/internal/fakegithub"
+	cistatus "github.com/OWNER/gh-ci-status"
+	"github.com/OWNER/gh-ci-status/internal/fakegithub"
 )
 
 // Short names for the library types these tests use throughout.

@@ -19,8 +19,8 @@ import (
 	"testing"
 	"time"
 
-	cistatus "github.com/OWNER/ci-status"
-	"github.com/OWNER/ci-status/internal/fakegithub"
+	cistatus "github.com/OWNER/gh-ci-status"
+	"github.com/OWNER/gh-ci-status/internal/fakegithub"
 )
 
 // TestMain pins the time zone before any test or server goroutine starts.
@@ -109,7 +109,7 @@ func TestHelp(t *testing.T) {
 	if code := run(context.Background(), []string{"--help"}, e.d); code != 0 {
 		t.Fatalf("exit %d", code)
 	}
-	for _, want := range []string{"serve", "--port", "--no-open", "--new-key", "--json", "add OWNER/REPO", "check", "Exit codes"} {
+	for _, want := range []string{"serve", "--port", "--no-open", "--new-key", "--json", "add OWNER/REPO", "check", "Exit codes", "gh extension install"} {
 		if !strings.Contains(e.out.String(), want) {
 			t.Errorf("usage lacks %s", want)
 		}
@@ -121,7 +121,7 @@ func TestHelp(t *testing.T) {
 
 func TestVersion(t *testing.T) {
 	e := newCLI(t, fakegithub.New(t))
-	if code := run(context.Background(), []string{"--version"}, e.d); code != 0 || !strings.HasPrefix(e.out.String(), "ci-status ") {
+	if code := run(context.Background(), []string{"--version"}, e.d); code != 0 || !strings.HasPrefix(e.out.String(), "gh-ci-status ") {
 		t.Fatalf("exit %d out %q", code, e.out.String())
 	}
 }
@@ -131,8 +131,8 @@ func TestVersion(t *testing.T) {
 func TestStatusNotSetUp(t *testing.T) {
 	f := fakegithub.New(t)
 	e := newCLI(t, f)
-	if code := run(context.Background(), nil, e.d); code != 2 || !strings.Contains(e.errOut.String(), "ci-status add OWNER/REPO") ||
-		!strings.Contains(e.errOut.String(), "ci-status serve") || e.out.String() != "" {
+	if code := run(context.Background(), nil, e.d); code != 2 || !strings.Contains(e.errOut.String(), "gh ci-status add OWNER/REPO") ||
+		!strings.Contains(e.errOut.String(), "gh ci-status serve") || e.out.String() != "" {
 		t.Fatalf("exit %d out %q err %q", code, e.out.String(), e.errOut.String())
 	}
 	e2 := newCLI(t, f)
@@ -250,7 +250,7 @@ func TestAdd(t *testing.T) {
 	if got := cfg.RepoNames(); len(got) != 1 || got[0] != testRepo {
 		t.Fatalf("repos %v", got)
 	}
-	if !strings.Contains(e.out.String(), "Added "+testRepo) || !strings.Contains(e.out.String(), "ci-status serve") {
+	if !strings.Contains(e.out.String(), "Added "+testRepo) || !strings.Contains(e.out.String(), "gh ci-status serve") {
 		t.Errorf("output %q", e.out.String())
 	}
 	e.out = &syncBuf{}
@@ -307,7 +307,7 @@ func TestPortInUse(t *testing.T) {
 
 var urlRe = regexp.MustCompile(`http://127\.0\.0\.1:(\d+)/\?key=([0-9a-f]{64})`)
 
-// startServe runs `ci-status serve args...` until the URL is printed and
+// startServe runs `gh-ci-status serve args...` until the URL is printed and
 // returns it with a stop function that waits for a clean exit.
 func startServe(t *testing.T, e *cliEnv, args ...string) (string, func() int) {
 	t.Helper()
@@ -414,7 +414,7 @@ func TestStatusNothingWatchedHint(t *testing.T) {
 	e := newCLI(t, fakegithub.New(t))
 	watchIn(t, e)
 	if code := run(context.Background(), nil, e.d); code != 0 || e.out.String() != "nothing watched\n" ||
-		!strings.Contains(e.errOut.String(), "Configure") || !strings.Contains(e.errOut.String(), "ci-status serve") {
+		!strings.Contains(e.errOut.String(), "Configure") || !strings.Contains(e.errOut.String(), "gh ci-status serve") {
 		t.Fatalf("exit %d out %q err %q", code, e.out.String(), e.errOut.String())
 	}
 }

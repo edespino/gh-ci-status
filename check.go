@@ -20,7 +20,7 @@ type Check struct {
 }
 
 // CheckGH looks for the GitHub CLI with lookPath (exec.LookPath outside
-// tests). ci-status reads GitHub with the CLI's login.
+// tests). gh-ci-status reads GitHub with the CLI's login.
 func CheckGH(lookPath func(string) (string, error)) Check {
 	path, err := lookPath("gh")
 	if err != nil {

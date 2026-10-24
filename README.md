@@ -5,14 +5,15 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/OWNER/ci-status/actions/workflows/ci.yml"><img src="https://github.com/OWNER/ci-status/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/OWNER/gh-ci-status/actions/workflows/ci.yml"><img src="https://github.com/OWNER/gh-ci-status/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License: Apache 2.0"></a>
 </p>
 
-ci-status answers one question about the GitHub Actions workflows you care about: what is
-red right now, since when, and where does it fail?
+gh-ci-status is a [GitHub CLI](https://cli.github.com) extension that answers one question
+about the GitHub Actions workflows you care about: what is red right now, since when, and
+where does it fail?
 
-You choose workflow and branch pairs in one or more repositories. ci-status shows their
+You choose workflow and branch pairs in one or more repositories. gh-ci-status shows their
 current state as a local web page, as text in the terminal, or as JSON for scripts and tools.
 Reds come first, oldest at the top, each with how long it has been red, the step it fails at,
 and the last green run. It reads GitHub only when you ask, with your own GitHub CLI login,
@@ -33,33 +34,23 @@ Every name links to the workflow's run history on that branch.
 
 ## Quick start
 
-You need:
+You need the [GitHub CLI](https://cli.github.com), logged in: `gh auth login`.
 
-- the [GitHub CLI](https://cli.github.com), logged in: `gh auth login`
-- [Go](https://go.dev/dl/) 1.23 or newer, to build ci-status
-
-Build it:
+Install the extension and start it:
 
 ```shell
-git clone https://github.com/OWNER/ci-status.git
-cd ci-status
-make build          # or: go build -o bin/ci-status ./cmd/ci-status
-```
-
-Start it:
-
-```shell
-bin/ci-status serve
+gh extension install OWNER/gh-ci-status
+gh ci-status serve
 ```
 
 On the first run:
 
-1. ci-status checks that the GitHub CLI is installed, that you are logged in, and that it can
-   reach the GitHub API. Anything missing is reported with what to do about it.
+1. gh-ci-status checks that the GitHub CLI is installed, that you are logged in, and that it
+   can reach the GitHub API. Anything missing is reported with what to do about it.
 2. It prints an address like `http://127.0.0.1:8723/?key=...` and opens it. Bookmark it: the
-   address stays the same every time you start `ci-status serve`.
+   address stays the same every time you start `gh ci-status serve`.
 3. The page opens on **Setup**. Type a repository as `owner/name`, or paste its GitHub address.
-   ci-status checks that your login can read it and that it has GitHub Actions workflows.
+   gh-ci-status checks that your login can read it and that it has GitHub Actions workflows.
 4. **Configure** lists every workflow in that repository with its current status on the default
    branch. Pick what to watch: **+ main** for one workflow, **Watch all failing** for every
    failing one, or another branch under **other branches**. Changes save as you click.
@@ -68,25 +59,29 @@ On the first run:
 From the terminal instead:
 
 ```shell
-bin/ci-status check                      # what works and what does not
-bin/ci-status add octo-org/octo-repo     # add a repository (choose workflows in the page)
-bin/ci-status                            # print the status
-bin/ci-status --json                     # the same as JSON
+gh ci-status check                      # what works and what does not
+gh ci-status add octo-org/octo-repo     # add a repository (choose workflows in the page)
+gh ci-status                            # print the status
+gh ci-status --json                     # the same as JSON
 ```
+
+To build it from source instead, see [Development](#development).
 
 ## Commands
 
 | Command | What it does |
 |---|---|
-| `ci-status` | Print the status of everything you watch. |
-| `ci-status --json` | The same as a JSON report, for scripts and tools. |
-| `ci-status serve` | Serve the web page on `http://127.0.0.1:8723/` and open it. `--port N` uses another port, `--no-open` does not open the browser, `--new-key` replaces the key in the address. |
-| `ci-status add OWNER/REPO` | Check a repository with GitHub and add it. |
-| `ci-status check` | Check the GitHub CLI, your login, the API and each repository. |
-| `ci-status --version` | Print the version. |
+| `gh ci-status` | Print the status of everything you watch. |
+| `gh ci-status --json` | The same as a JSON report, for scripts and tools. |
+| `gh ci-status serve` | Serve the web page on `http://127.0.0.1:8723/` and open it. `--port N` uses another port, `--no-open` does not open the browser, `--new-key` replaces the key in the address. |
+| `gh ci-status add OWNER/REPO` | Check a repository with GitHub and add it. |
+| `gh ci-status check` | Check the GitHub CLI, your login, the API and each repository. |
+| `gh ci-status --version` | Print the version. |
+
+The binary also runs on its own as `gh-ci-status`, with the same commands.
 
 Exit codes: `0` everything was read, `1` something could not be read or a check failed, `2` a
-usage error or nothing set up yet. A red workflow is not an error: it is what ci-status reports.
+usage error or nothing set up yet. A red workflow is not an error: it is what gh-ci-status reports.
 
 The JSON report has stable field names:
 
@@ -116,10 +111,10 @@ The JSON report has stable field names:
 flowchart LR
     subgraph computer["Your computer"]
         browser["Browser<br/>status, Configure, Setup"]
-        terminal["Terminal<br/>ci-status, --json, check, add"]
-        serve["ci-status serve<br/>127.0.0.1 only, key in every URL"]
+        terminal["Terminal<br/>gh ci-status, --json, check, add"]
+        serve["gh ci-status serve<br/>127.0.0.1 only, key in every URL"]
         lib["cistatus library<br/>checks, collect, evaluate, report"]
-        files[("config.json and key<br/>~/.config/ci-status")]
+        files[("config.json and key<br/>~/.config/gh-ci-status")]
         gh["GitHub CLI<br/>gh auth token"]
     end
     api[("GitHub REST API")]
@@ -152,25 +147,25 @@ makes, and the design decisions.
 ## Security
 
 - The server listens on `127.0.0.1` only and answers only requests for its own host and port.
-- Every address carries a random key (kept in `~/.config/ci-status/key`, readable only by you).
+- Every address carries a random key (kept in `~/.config/gh-ci-status/key`, readable only by you).
   There is no cookie, because browsers send cookies to every port on `127.0.0.1`, so a page from
-  another local server could otherwise act on ci-status.
+  another local server could otherwise act on gh-ci-status.
 - Pages send `Referrer-Policy: no-referrer`, a strict `Content-Security-Policy`, and load
   nothing from other sites.
-- The GitHub token stays with the GitHub CLI. ci-status asks `gh auth token` when it needs to
+- The GitHub token stays with the GitHub CLI. gh-ci-status asks `gh auth token` when it needs to
   read GitHub, keeps the token in memory, and never logs or prints it.
 
-If someone else gets your address, start with `ci-status serve --new-key`. See
+If someone else gets your address, start with `gh ci-status serve --new-key`. See
 [SECURITY.md](SECURITY.md) to report a problem.
 
 ## Settings
 
 | File | Holds |
 |---|---|
-| `~/.config/ci-status/config.json` | The repositories and the workflow and branch pairs you watch. |
-| `~/.config/ci-status/key` | The key in your bookmarked address. |
+| `~/.config/gh-ci-status/config.json` | The repositories and the workflow and branch pairs you watch. |
+| `~/.config/gh-ci-status/key` | The key in your bookmarked address. |
 
-`$XDG_CONFIG_HOME/ci-status/` is used instead when `XDG_CONFIG_HOME` is set. Both files are
+`$XDG_CONFIG_HOME/gh-ci-status/` is used instead when `XDG_CONFIG_HOME` is set. Both files are
 created with mode `0600` in a `0700` directory. There are no built-in defaults: a new user
 starts with nothing watched.
 
@@ -180,7 +175,7 @@ The root package, `cistatus`, holds everything except the web page and the comma
 other programs (for example an MCP server) can give the same answers:
 
 ```go
-import cistatus "github.com/OWNER/ci-status"
+import cistatus "github.com/OWNER/gh-ci-status"
 
 token, err := cistatus.GHToken(ctx)
 if err != nil {
@@ -205,16 +200,26 @@ methods to add and remove repositories and watches.
 
 ## Development
 
+You need Go 1.23 or newer and the GitHub CLI.
+
 ```shell
-make check      # gofmt, go vet, and the tests with the race detector (what CI runs)
-make test       # the tests only
-make banner     # regenerate assets/banner.svg after changing the wordmark
+git clone https://github.com/OWNER/gh-ci-status.git
+cd gh-ci-status
+make build                  # builds ./gh-ci-status
+gh extension install .      # run your build as 'gh ci-status'
+make check                  # gofmt, go vet, and the tests with the race detector (what CI runs)
+make banner                 # regenerate assets/banner.svg after changing the wordmark
 ```
 
 The standard library is the only dependency. Tests use a fake GitHub API
 (`internal/fakegithub`). The browser tests drive a headless Chrome or Chromium found on `PATH`,
 at `$CHROME_PATH`, or as the macOS application, and are skipped when there is none.
 [CONTRIBUTING.md](CONTRIBUTING.md) has the conventions.
+
+Releases: pushing a tag such as `v1.0.0` runs `.github/workflows/release.yml`, which builds the
+binaries for each platform, attaches them to a GitHub release with build attestations, and makes
+the new version installable with `gh extension install`. A tag with a `-` (such as `v1.0.0-rc.1`)
+makes a prerelease.
 
 ## Roadmap
 
@@ -225,3 +230,5 @@ at `$CHROME_PATH`, or as the macOS application, and are skipped when there is no
 ## License
 
 Apache License 2.0. See [LICENSE](LICENSE).
+
+gh-ci-status is not affiliated with or endorsed by GitHub.

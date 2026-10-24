@@ -15,7 +15,7 @@ import (
 	"strings"
 	"testing"
 
-	cistatus "github.com/OWNER/ci-status"
+	cistatus "github.com/OWNER/gh-ci-status"
 )
 
 func TestForbiddenWithoutKey(t *testing.T) {

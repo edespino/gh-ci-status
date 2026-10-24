@@ -6,7 +6,7 @@ import (
 	"io"
 	"net/http"
 
-	cistatus "github.com/OWNER/ci-status"
+	cistatus "github.com/OWNER/gh-ci-status"
 )
 
 // SetupPage is the first page a new user sees: whether the GitHub login

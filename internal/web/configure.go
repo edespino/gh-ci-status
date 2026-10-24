@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	cistatus "github.com/OWNER/ci-status"
+	cistatus "github.com/OWNER/gh-ci-status"
 )
 
 // WatchItem is one watched workflow in the Configure page's Watching list.

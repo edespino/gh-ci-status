@@ -3,7 +3,7 @@
 package web
 
 import (
-	cistatus "github.com/OWNER/ci-status"
+	cistatus "github.com/OWNER/gh-ci-status"
 	"strings"
 	"testing"
 )

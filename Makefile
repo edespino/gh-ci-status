@@ -2,8 +2,8 @@
 
 .PHONY: build test race vet fmt-check check banner clean
 
-build: ## Build bin/ci-status
-	go build -o bin/ci-status ./cmd/ci-status
+build: ## Build ./gh-ci-status (then 'gh extension install .' runs it as 'gh ci-status')
+	go build -o gh-ci-status ./cmd/gh-ci-status
 
 test: ## Run the tests
 	go test -count=1 ./...
@@ -23,4 +23,4 @@ banner: ## Regenerate assets/banner.svg from the wordmark
 	UPDATE_BANNER=1 go test -count=1 ./internal/banner -run TestBannerSVG
 
 clean: ## Remove build output
-	rm -rf bin
+	rm -f gh-ci-status

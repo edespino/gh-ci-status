@@ -12,7 +12,7 @@ import (
 	"regexp"
 	"strings"
 
-	cistatus "github.com/OWNER/ci-status"
+	cistatus "github.com/OWNER/gh-ci-status"
 )
 
 var hexKey = regexp.MustCompile(`^[0-9a-f]{64}$`)

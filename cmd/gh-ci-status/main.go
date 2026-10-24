@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-// Command ci-status shows the current state of chosen GitHub Actions
+// Command gh-ci-status shows the current state of chosen GitHub Actions
 // workflows on chosen branches: in the terminal, as JSON, or as a local web
 // page. See README.md.
 package main
@@ -24,30 +24,33 @@ import (
 	"syscall"
 	"time"
 
-	cistatus "github.com/OWNER/ci-status"
-	"github.com/OWNER/ci-status/internal/banner"
-	"github.com/OWNER/ci-status/internal/web"
+	cistatus "github.com/OWNER/gh-ci-status"
+	"github.com/OWNER/gh-ci-status/internal/banner"
+	"github.com/OWNER/gh-ci-status/internal/web"
 )
 
-const usage = `ci-status: the current state of chosen GitHub Actions workflows, per branch.
+const usage = `gh-ci-status: the current state of chosen GitHub Actions workflows, per branch.
+
+It is a GitHub CLI extension; install it with 'gh extension install OWNER/gh-ci-status'
+and run it as 'gh ci-status'. The binary also runs on its own as 'gh-ci-status'.
 
 Usage:
-  ci-status                  print the status of everything you watch
-  ci-status --json           the same as JSON, for scripts and tools
-  ci-status serve [--port N] [--no-open] [--new-key]
-                             serve the web page on http://127.0.0.1:N/ (default 8723)
-                             and open it; --no-open does not open the browser;
-                             --new-key replaces the saved key (old bookmarks stop working)
-  ci-status add OWNER/REPO   check a repository with GitHub and add it
-  ci-status check            check the GitHub CLI, your login and each repository
-  ci-status --version
-  ci-status --help
+  gh ci-status                  print the status of everything you watch
+  gh ci-status --json           the same as JSON, for scripts and tools
+  gh ci-status serve [--port N] [--no-open] [--new-key]
+                                serve the web page on http://127.0.0.1:N/ (default 8723)
+                                and open it; --no-open does not open the browser;
+                                --new-key replaces the saved key (old bookmarks stop working)
+  gh ci-status add OWNER/REPO   check a repository with GitHub and add it
+  gh ci-status check            check the GitHub CLI, your login and each repository
+  gh ci-status --version
+  gh ci-status --help
 
-First use: run 'ci-status serve' and follow the Setup page, or run
-'ci-status add OWNER/REPO' and then choose workflows in the web page.
+First use: run 'gh ci-status serve' and follow the Setup page, or run
+'gh ci-status add OWNER/REPO' and then choose workflows in the web page.
 
-ci-status reads GitHub with your GitHub CLI login (gh) and keeps its settings in
-$XDG_CONFIG_HOME/ci-status or ~/.config/ci-status.
+gh-ci-status reads GitHub with your GitHub CLI login and keeps its settings in
+$XDG_CONFIG_HOME/gh-ci-status or ~/.config/gh-ci-status.
 
 Exit codes: 0 everything was read, 1 something could not be read or a check
 failed, 2 a usage error or nothing set up yet.
@@ -55,8 +58,8 @@ failed, 2 a usage error or nothing set up yet.
 
 const defaultPort = 8723
 
-const notSetUp = "ci-status: no repository set up yet. Run 'ci-status serve' and use the Setup page,\n" +
-	"or run 'ci-status add OWNER/REPO'."
+const notSetUp = "gh-ci-status: no repository set up yet. Run 'gh ci-status serve' and use the Setup page,\n" +
+	"or run 'gh ci-status add OWNER/REPO'."
 
 // deps holds everything run touches outside the process, so tests can
 // replace it.
@@ -76,7 +79,7 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	dir, err := cistatus.ConfigDir()
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "ci-status:", err)
+		fmt.Fprintln(os.Stderr, "gh-ci-status:", err)
 		os.Exit(1)
 	}
 	code := run(ctx, os.Args[1:], deps{
@@ -102,7 +105,7 @@ func run(ctx context.Context, args []string, d deps) int {
 		fmt.Fprint(d.stdout, usage)
 		return 0
 	case "--version", "version":
-		fmt.Fprintln(d.stdout, "ci-status", version())
+		fmt.Fprintln(d.stdout, "gh-ci-status", version())
 		return 0
 	case "serve":
 		return serve(ctx, args[1:], d)
@@ -111,7 +114,7 @@ func run(ctx context.Context, args []string, d deps) int {
 	case "add":
 		return add(ctx, args[1:], d)
 	}
-	fmt.Fprintf(d.stderr, "ci-status: unknown command %q\n\n%s", args[0], usage)
+	fmt.Fprintf(d.stderr, "gh-ci-status: unknown command %q\n\n%s", args[0], usage)
 	return 2
 }
 
@@ -119,7 +122,7 @@ func run(ctx context.Context, args []string, d deps) int {
 func status(ctx context.Context, d deps, asJSON bool) int {
 	cfg, _, err := cistatus.LoadConfig(d.dir)
 	if err != nil {
-		fmt.Fprintln(d.stderr, "ci-status:", err)
+		fmt.Fprintln(d.stderr, "gh-ci-status:", err)
 		return 1
 	}
 	if len(cfg.Repos) == 0 {
@@ -131,7 +134,7 @@ func status(ctx context.Context, d deps, asJSON bool) int {
 	}
 	token, err := d.token(ctx)
 	if err != nil {
-		fmt.Fprintln(d.stderr, "ci-status:", err)
+		fmt.Fprintln(d.stderr, "gh-ci-status:", err)
 		return 1
 	}
 	client := cistatus.NewClient(token, d.baseURL)
@@ -146,7 +149,7 @@ func status(ctx context.Context, d deps, asJSON bool) int {
 		writeText(d.stdout, rows, len(cfg.Repos) > 1)
 	}
 	if len(rows) == 0 {
-		fmt.Fprintln(d.stderr, "ci-status: no workflows watched yet. Run 'ci-status serve' and choose them on the Configure page.")
+		fmt.Fprintln(d.stderr, "gh-ci-status: no workflows watched yet. Run 'gh ci-status serve' and choose them on the Configure page.")
 	}
 	for _, r := range rows {
 		if r.State == cistatus.Error {
@@ -187,12 +190,12 @@ func check(ctx context.Context, d deps) int {
 	cfg, _, err := cistatus.LoadConfig(d.dir)
 	if err != nil {
 		fmt.Fprintln(d.stdout, cistatus.Check{Name: "Configuration", Detail: err.Error(),
-			Fix: "Fix or delete the file, then run 'ci-status add OWNER/REPO'"})
+			Fix: "Fix or delete the file, then run 'gh ci-status add OWNER/REPO'"})
 		return 1
 	}
 	if len(cfg.Repos) == 0 {
 		fmt.Fprintln(d.stdout, cistatus.Check{Name: "Repositories", Detail: "none set up yet",
-			Fix: "Run 'ci-status serve' and use the Setup page, or run 'ci-status add OWNER/REPO'"})
+			Fix: "Run 'gh ci-status serve' and use the Setup page, or run 'gh ci-status add OWNER/REPO'"})
 		return 1
 	}
 	code := 0
@@ -209,18 +212,18 @@ func check(ctx context.Context, d deps) int {
 // add checks a repository with GitHub and saves it under GitHub's spelling.
 func add(ctx context.Context, args []string, d deps) int {
 	if len(args) != 1 {
-		fmt.Fprintf(d.stderr, "ci-status: add takes one repository, as OWNER/REPO\n\n%s", usage)
+		fmt.Fprintf(d.stderr, "gh-ci-status: add takes one repository, as OWNER/REPO\n\n%s", usage)
 		return 2
 	}
 	cfg, _, err := cistatus.LoadConfig(d.dir)
 	if err != nil {
-		fmt.Fprintln(d.stderr, "ci-status:", err)
-		fmt.Fprintln(d.stderr, "ci-status: fix or delete that file first; nothing was changed")
+		fmt.Fprintln(d.stderr, "gh-ci-status:", err)
+		fmt.Fprintln(d.stderr, "gh-ci-status: fix or delete that file first; nothing was changed")
 		return 1
 	}
 	token, err := d.token(ctx)
 	if err != nil {
-		fmt.Fprintln(d.stderr, "ci-status:", err)
+		fmt.Fprintln(d.stderr, "gh-ci-status:", err)
 		return 1
 	}
 	c, name := cistatus.CheckRepo(ctx, cistatus.NewClient(token, d.baseURL), cistatus.ParseRepo(args[0]))
@@ -233,10 +236,10 @@ func add(ctx context.Context, args []string, d deps) int {
 		return 0
 	}
 	if err := cistatus.SaveConfig(d.dir, cfg.AddRepo(name)); err != nil {
-		fmt.Fprintln(d.stderr, "ci-status:", err)
+		fmt.Fprintln(d.stderr, "gh-ci-status:", err)
 		return 1
 	}
-	fmt.Fprintf(d.stdout, "Added %s. Next: run 'ci-status serve' and choose its workflows on the Configure page.\n", name)
+	fmt.Fprintf(d.stdout, "Added %s. Next: run 'gh ci-status serve' and choose its workflows on the Configure page.\n", name)
 	return 0
 }
 
@@ -258,20 +261,20 @@ func serve(ctx context.Context, args []string, d deps) int {
 		fmt.Fprint(d.stdout, banner.Terminal(banner.UseColor(getenv)), "\n")
 	}
 	if _, ok := prerequisites(ctx, d); !ok {
-		fmt.Fprintln(d.stderr, "ci-status: fix the check above, then start again")
+		fmt.Fprintln(d.stderr, "gh-ci-status: fix the check above, then start again")
 		return 1
 	}
 	key, err := web.LoadOrCreateKey(d.dir, *newKey)
 	if err != nil {
-		fmt.Fprintln(d.stderr, "ci-status:", err)
+		fmt.Fprintln(d.stderr, "gh-ci-status:", err)
 		return 1
 	}
 	ln, err := d.listen(fmt.Sprintf("127.0.0.1:%d", *port))
 	if err != nil {
 		if strings.Contains(err.Error(), "address already in use") {
-			fmt.Fprintf(d.stderr, "ci-status: port %d is in use; start with --port N to use another\n", *port)
+			fmt.Fprintf(d.stderr, "gh-ci-status: port %d is in use; start with --port N to use another\n", *port)
 		} else {
-			fmt.Fprintln(d.stderr, "ci-status:", err)
+			fmt.Fprintln(d.stderr, "gh-ci-status:", err)
 		}
 		return 1
 	}
@@ -287,7 +290,7 @@ func serve(ctx context.Context, args []string, d deps) int {
 			return cistatus.NewClient(t, d.baseURL), nil
 		},
 		Dir: d.dir, Key: key, Port: actual, Now: d.now,
-		Logger: log.New(d.stderr, "ci-status: ", log.LstdFlags),
+		Logger: log.New(d.stderr, "gh-ci-status: ", log.LstdFlags),
 	})
 	srv := &http.Server{Handler: s.Handler(), ReadHeaderTimeout: 10 * time.Second}
 	served := make(chan error, 1)
@@ -296,10 +299,10 @@ func serve(ctx context.Context, args []string, d deps) int {
 	if cfg, _, err := cistatus.LoadConfig(d.dir); err == nil && len(cfg.Repos) == 0 {
 		fmt.Fprintln(d.stdout, "No repository set up yet: the page opens on Setup.")
 	}
-	fmt.Fprintf(d.stdout, "ci-status: serving %s\nBookmark that address; press Ctrl-C to stop.\n", url)
+	fmt.Fprintf(d.stdout, "gh-ci-status: serving %s\nBookmark that address; press Ctrl-C to stop.\n", url)
 	if !*noOpen {
 		if err := d.open(url); err != nil {
-			fmt.Fprintln(d.stderr, "ci-status: could not open the browser:", err)
+			fmt.Fprintln(d.stderr, "gh-ci-status: could not open the browser:", err)
 		}
 	}
 
@@ -307,7 +310,7 @@ func serve(ctx context.Context, args []string, d deps) int {
 	case <-ctx.Done():
 	case err := <-served:
 		if !errors.Is(err, http.ErrServerClosed) {
-			fmt.Fprintln(d.stderr, "ci-status:", err)
+			fmt.Fprintln(d.stderr, "gh-ci-status:", err)
 			return 1
 		}
 	}

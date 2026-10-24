@@ -74,7 +74,7 @@ type Step struct {
 	Conclusion string `json:"conclusion"`
 }
 
-// Repository is what ci-status reads about a repository.
+// Repository is what gh-ci-status reads about a repository.
 type Repository struct {
 	FullName      string `json:"full_name"` // GitHub's spelling, e.g. "octo-org/octo-repo"
 	DefaultBranch string `json:"default_branch"`
