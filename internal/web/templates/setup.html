@@ -1,0 +1,63 @@
+{{/* SPDX-License-Identifier: Apache-2.0 */ -}}
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ci-status · setup</title>
+<style>
+:root{--bg:#fafafa;--fg:#18181b;--muted:#71717a;--row:#fff;--chip:#e4e4e7;--bad:#dc2626;--badbg:#fef2f2;--ok:#16a34a;--okbg:#f0fdf4;--link:#1d4ed8;--btn:#e4e4e7;--primary:#1d4ed8}
+@media (prefers-color-scheme: dark){:root{--bg:#18181b;--fg:#e4e4e7;--muted:#a1a1aa;--row:#27272a;--chip:#3f3f46;--badbg:#3f1d1d;--okbg:#14321f;--link:#93c5fd;--btn:#3f3f46;--primary:#2563eb}}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--fg);font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;margin:24px auto;max-width:760px;padding:0 16px}
+header{display:flex;align-items:center;gap:16px;border-bottom:1px solid var(--chip);padding-bottom:10px}
+.wordmark{display:block;flex:none}
+h1{font-size:20px;margin:0}h2{font-size:15px;margin:22px 0 8px}
+.sub{color:var(--muted);flex:1 1 auto}
+a{color:var(--link)}
+a.done{flex:none;background:var(--primary);color:#fff;text-decoration:none;border-radius:4px;padding:5px 18px;font-weight:600}
+button{background:var(--btn);color:var(--fg);border:0;border-radius:4px;padding:5px 12px;font:inherit;cursor:pointer}
+button.primary{background:var(--primary);color:#fff;font-weight:600}
+form.inline{display:inline;margin:0}
+.mono{font:13px ui-monospace,Menlo,monospace}
+.check{border-left:6px solid var(--bad);background:var(--badbg);padding:8px 12px;border-radius:4px;margin:0}
+.check.ok{border-left-color:var(--ok);background:var(--okbg)}
+.fix{color:var(--fg)}
+.repo-item{display:flex;align-items:center;gap:14px;background:var(--row);border-radius:4px;padding:6px 10px;margin:4px 0}
+.repo-item .mono{flex:1 1 auto}
+form.add{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:14px}
+form.add label{font-weight:600}
+form.add input{flex:1 1 260px;padding:6px 8px;font:14px ui-monospace,Menlo,monospace}
+.hint{color:var(--muted);margin:6px 0 0}
+.error{background:var(--badbg);border-left:8px solid var(--bad);padding:8px 12px;border-radius:4px}
+</style>
+</head>
+<body>
+<header>
+{{wordmark}}
+<h1>Setup</h1>
+<span class="sub">which repositories to watch</span>
+{{if .Repos}}<a class="done" href="/?key={{.Key}}" data-busy="Reading GitHub…" title="back to the status page">Done</a>{{end}}
+</header>
+{{if .Error}}<p class="error">{{.Error}}</p>{{end}}
+
+<h2>GitHub login</h2>
+<p class="check{{if .Login.OK}} ok{{end}}" id="login"><b>{{if .Login.OK}}Working:{{else}}Not working:{{end}}</b> {{.Login.Detail}}{{with .Login.Fix}}<br><span class="fix">{{.}}</span>{{end}}</p>
+
+<h2>Repositories</h2>
+{{range .Repos}}<div class="repo-item"><span class="mono">{{.}}</span>
+<a href="/configure?key={{$.Key}}&amp;repo={{.}}" data-busy="Loading Configure…">Configure</a>
+<form class="inline" method="post" action="/setup/remove?key={{$.Key}}" data-busy="Saving…" data-confirm="Stop watching {{.}} and forget its workflows?"><input type="hidden" name="repo" value="{{.}}"><button type="submit">Remove</button></form>
+</div>
+{{else}}<p class="sub">No repository yet. Add the first one below.</p>
+{{end}}
+<form class="add" method="post" action="/setup/add?key={{.Key}}" data-busy="Checking the repository with GitHub…">
+<label for="repo">Add a repository</label>
+<input id="repo" name="repo" type="text" placeholder="owner/name" value="{{.Repo}}" required autofocus spellcheck="false" autocomplete="off">
+<button type="submit" class="primary">Add</button>
+</form>
+<p class="hint">Type owner/name or paste the repository's GitHub address. ci-status checks that your GitHub login can read it and that it has GitHub Actions workflows, then opens Configure so you can choose which workflows to watch.</p>
+{{with .Problem}}<p class="error" id="problem"><b>{{.Name}}:</b> {{.Detail}}{{with .Fix}}<br>{{.}}{{end}}</p>{{end}}
+{{template "busy" .}}
+</body>
+</html>

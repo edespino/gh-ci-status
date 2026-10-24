@@ -1,0 +1,7 @@
+# Build output
+/bin/
+/ci-status
+
+# Test and coverage output
+*.out
+*.test

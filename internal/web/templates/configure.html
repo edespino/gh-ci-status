@@ -1,0 +1,219 @@
+{{/* SPDX-License-Identifier: Apache-2.0 */ -}}
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ci-status · configure</title>
+<style>
+:root{--bg:#fafafa;--fg:#18181b;--muted:#71717a;--row:#fff;--chip:#e4e4e7;--bad:#dc2626;--badbg:#fef2f2;--ok:#16a34a;--run:#ca8a04;--none:#a1a1aa;--link:#1d4ed8;--btn:#e4e4e7;--warn:#b45309;--panel:#f4f4f5;--primary:#1d4ed8}
+@media (prefers-color-scheme: dark){:root{--bg:#18181b;--fg:#e4e4e7;--muted:#a1a1aa;--row:#27272a;--chip:#3f3f46;--badbg:#3f1d1d;--link:#93c5fd;--btn:#3f3f46;--warn:#fbbf24;--panel:#1f2937;--primary:#2563eb}}
+[hidden]{display:none!important} /* rows set display:grid/flex, which would otherwise override hidden */
+body{background:var(--bg);color:var(--fg);font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;margin:24px auto;max-width:1100px;padding:0 16px}
+header{position:sticky;top:0;z-index:2;box-sizing:border-box;height:48px;background:var(--bg);border-bottom:1px solid var(--chip);display:flex;align-items:center;gap:16px}
+.wordmark{display:block;flex:none}
+header .sub{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+header .read,header form{flex:none}
+a.done{flex:none;background:var(--primary);color:#fff;text-decoration:none;border-radius:4px;padding:5px 18px;font-weight:600}
+#progress-head{flex:none;display:inline-flex}
+#progress{color:var(--muted);font-size:13px}
+.add-head{display:flex;align-items:baseline;gap:12px}
+.spin-sm{display:inline-block;width:12px;height:12px;border:2px solid var(--chip);border-top-color:var(--link);border-radius:50%;animation:spin .8s linear infinite;vertical-align:-2px;margin-right:6px}
+h1{font-size:20px;margin:0}h2{font-size:15px;margin:18px 0 6px}
+.sub{color:var(--muted);flex:1 1 300px}
+small,.mono{color:var(--muted);font:12px ui-monospace,Menlo,monospace}
+button{background:var(--btn);color:var(--fg);border:0;border-radius:4px;padding:3px 10px;font:inherit;cursor:pointer}
+button:disabled{opacity:.5;cursor:default}
+form.inline{display:inline;margin:0}
+.btn{display:inline-flex;align-items:center;gap:6px}.btn svg{width:16px;height:16px}
+a{color:var(--link)}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--none);flex:none;vertical-align:middle}
+.dot.bad{background:var(--bad)}.dot.ok{background:var(--ok)}.dot.run{background:var(--run)}
+.watch-item{display:flex;flex-wrap:wrap;align-items:center;gap:8px;background:var(--row);border-radius:4px;padding:6px 10px;margin:4px 0}
+.watch-item.red{background:var(--badbg)}
+.chip{display:inline-flex;align-items:center;gap:5px;background:var(--chip);border-radius:12px;padding:1px 4px 1px 8px;font:12px ui-monospace,Menlo,monospace}
+.chip button{background:none;padding:0 4px;color:var(--fg);font-weight:600}
+.chip button:hover{color:var(--bad)}
+.watch-item .remove{margin-left:auto}
+.section-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px}.section-head h2{margin-right:auto}
+.warn{color:var(--warn);font-style:normal}
+.tools{position:sticky;top:48px;background:var(--bg);padding:8px 0;display:flex;flex-wrap:wrap;gap:8px;align-items:center;z-index:1}
+input[type=search]{flex:1 1 240px;padding:5px 8px;font:inherit}
+.seg{display:inline-flex;gap:2px}.seg button.on{outline:2px solid var(--link)}
+#watch-failing button{background:var(--bad);color:#fff}
+.add-item{display:grid;grid-template-columns:14px minmax(200px,300px) 1fr auto;gap:4px 10px;align-items:center;border-bottom:1px solid var(--chip);padding:6px 4px}
+.add-item details{grid-column:2 / -1}
+summary{cursor:pointer;color:var(--link);font-size:12px}
+.panel{background:var(--panel);border-radius:4px;padding:6px 10px;margin-top:4px}
+.branch{display:flex;gap:8px;align-items:center;padding:2px 0}
+.panel input[type=text]{padding:2px 6px;font:12px ui-monospace,Menlo,monospace;width:200px}
+.error{background:var(--badbg);border-left:8px solid var(--bad);padding:8px 12px;border-radius:4px}
+nav.repos{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;margin:8px 0;color:var(--muted)}
+nav.repos a.repo{font:12px ui-monospace,Menlo,monospace;padding:2px 8px;border-radius:12px;background:var(--chip);color:var(--fg);text-decoration:none}
+nav.repos a.repo.on{outline:2px solid var(--link)}
+</style>
+</head>
+<body>
+<header>
+{{wordmark}}
+<h1>Configure</h1>
+<span class="sub">{{.Repo}} · default branch <b>{{.DefaultBranch}}</b> · changes save immediately</span>
+{{if .ReadAt}}<span class="read mono" title="Configure keeps what it read from GitHub until you press Refresh">read {{.ReadAt}}</span>
+<form class="inline" method="post" action="/configure/refresh?key={{.Key}}" data-busy="Reading GitHub…"><input type="hidden" name="repo" value="{{$.Repo}}"><button class="btn" type="submit">{{template "icon-refresh"}}Refresh</button></form>{{end}}
+<span id="progress-head" title="Reading statuses…"><span class="spin-sm"></span></span>
+<a class="done" href="/?key={{.Key}}" data-busy="Reading GitHub…" title="back to the status page">Done</a>
+</header>
+<nav class="repos">Repository:
+{{range .Repos}}<a class="repo{{if eq . $.Repo}} on{{end}}" href="/configure?key={{$.Key}}&amp;repo={{.}}" data-busy="Loading Configure…">{{.}}</a>
+{{end}}<a href="/setup?key={{.Key}}" data-busy="Loading Setup…">+ Add repository</a>
+</nav>
+{{if .Error}}<p class="error">{{.Error}}</p>{{end}}
+
+<div class="section-head">
+<h2>Watching ({{len .Watching}})</h2>
+{{if .Watching}}<form class="inline" method="post" action="/unwatch-all?key={{.Key}}" data-busy="Saving…" data-confirm="Stop watching {{plural (len .Watching) "workflow"}} in {{.Repo}}?"><input type="hidden" name="repo" value="{{$.Repo}}"><button type="submit">Remove all</button></form>{{end}}
+</div>
+{{range .Watching}}{{$file := .File}}
+<div class="watch-item{{if .Missing}} missing{{end}}" data-file="{{.File}}">
+<b>{{.Name}}</b><small>{{.File}}</small>{{if .Missing}}<em class="warn">not in repo</em>{{end}}
+{{range .Branches}}<span class="chip"><span class="dot" data-workflow="{{$file}}" data-branch="{{.}}"></span>{{.}}<form class="inline" method="post" action="/unwatch?key={{$.Key}}" data-busy="Saving…"><input type="hidden" name="repo" value="{{$.Repo}}"><input type="hidden" name="workflow" value="{{$file}}"><input type="hidden" name="branch" value="{{.}}"><button type="submit" title="stop watching on {{.}}">✕</button></form></span>{{end}}
+<form class="inline remove" method="post" action="/unwatch-workflow?key={{$.Key}}" data-busy="Saving…"><input type="hidden" name="repo" value="{{$.Repo}}"><input type="hidden" name="workflow" value="{{.File}}"><button type="submit" title="stop watching {{.Name}} on every branch">Remove</button></form>
+</div>
+{{else}}<p class="sub">Nothing watched. Add workflows below.</p>{{end}}
+
+<div class="add-head">
+<h2>Add workflows</h2>
+<span id="progress" role="status"><span class="spin-sm"></span><span id="progress-text">Reading statuses…</span></span>
+</div>
+<div class="tools">
+<input type="search" id="filter" placeholder="filter by name">
+<span class="seg">
+<button type="button" data-filter="all" class="on">All {{len .Items}}</button>
+<button type="button" data-filter="failing">Failing <span id="n-failing">…</span></button>
+<button type="button" data-filter="unwatched">Not watched <span id="n-unwatched"></span></button>
+</span>
+<form method="post" action="/watch-failing?key={{.Key}}" id="watch-failing" data-busy="Adding failing workflows…"><input type="hidden" name="repo" value="{{$.Repo}}"><span id="failing-inputs"></span><button type="submit" disabled>Watch all failing <span id="n-add-failing"></span></button></form>
+</div>
+{{range .Items}}{{$file := .File}}
+<div class="add-item" data-file="{{.File}}" data-name="{{.Name}} {{.File}}" data-watched="{{.Watched}}" data-state="">
+<span class="dot" data-workflow="{{.File}}" data-branch="{{$.DefaultBranch}}"></span>
+<span><b>{{.Name}}</b> <small>{{.File}}</small>{{if and .State (ne .State "active")}} <em class="warn">{{.State}}</em>{{end}}</span>
+<a class="mono status" href="#">reading…</a>
+<form class="inline" method="post" action="/watch?key={{$.Key}}" data-busy="Saving…"><input type="hidden" name="repo" value="{{$.Repo}}"><input type="hidden" name="workflow" value="{{.File}}"><input type="hidden" name="branch" value="{{$.DefaultBranch}}"><button type="submit">+ {{$.DefaultBranch}}</button></form>
+<details><summary>other branches{{if .Branches}} ({{len .Branches}}){{end}}</summary>
+<div class="panel">
+{{range .Branches}}<div class="branch"><span class="dot {{stateClass .State}}"></span><span class="mono">{{.Name}}</span><a class="mono" href="{{.RunURL}}">{{if eq .State "other"}}{{.Conclusion}}{{else}}{{.State}}{{end}} #{{.RunNumber}}</a>{{if .Watched}}<em class="mono">watching</em>{{else}}<form class="inline" method="post" action="/watch?key={{$.Key}}" data-busy="Saving…"><input type="hidden" name="repo" value="{{$.Repo}}"><input type="hidden" name="workflow" value="{{$file}}"><input type="hidden" name="branch" value="{{.Name}}"><button type="submit">+ watch</button></form>{{end}}</div>
+{{else}}<div class="mono">No other branch ran it recently.</div>{{end}}
+<form class="inline" method="post" action="/watch?key={{$.Key}}" data-busy="Saving…"><input type="hidden" name="repo" value="{{$.Repo}}"><input type="hidden" name="workflow" value="{{.File}}"><input type="text" name="branch" placeholder="another branch" required> <button type="submit">+ watch</button></form>
+</div>
+</details>
+</div>
+{{end}}
+
+<script>
+(function () {
+  var KEY = {{.Key}};
+  var REPO = {{.Repo}};
+  var DEFAULT_BRANCH = {{.DefaultBranch}};
+  var CLASS = {failing: "bad", error: "bad", passing: "ok", running: "run"};
+  var items = Array.prototype.slice.call(document.querySelectorAll(".add-item"));
+  var mode = "all";
+
+  // Counts and "Watch all failing" wait until every status has loaded, so
+  // they never act on a partial list.
+  function refresh() {
+    var done = loaded >= total;
+    var failing = 0, unwatched = 0, toAdd = [];
+    items.forEach(function (it) {
+      if (it.dataset.state === "failing") {
+        failing++;
+        if (it.dataset.watched !== "true") { toAdd.push(it.dataset.file); }
+      }
+      if (it.dataset.watched !== "true") { unwatched++; }
+    });
+    document.getElementById("n-failing").textContent = done ? failing : "…";
+    document.getElementById("n-unwatched").textContent = unwatched;
+    document.getElementById("n-add-failing").textContent = done && toAdd.length ? "(" + toAdd.length + " more)" : "";
+    var box = document.getElementById("failing-inputs");
+    box.textContent = "";
+    toAdd.forEach(function (f) {
+      var i = document.createElement("input");
+      i.type = "hidden"; i.name = "workflow"; i.value = f;
+      box.appendChild(i);
+    });
+    document.querySelector("#watch-failing button").disabled = !done || toAdd.length === 0;
+    filter();
+  }
+
+  function filter() {
+    var q = document.getElementById("filter").value.toLowerCase();
+    items.forEach(function (it) {
+      var show = it.dataset.name.toLowerCase().indexOf(q) !== -1;
+      if (mode === "failing") { show = show && it.dataset.state === "failing"; }
+      if (mode === "unwatched") { show = show && it.dataset.watched !== "true"; }
+      it.hidden = !show;
+    });
+  }
+
+  var dots = {};
+  Array.prototype.forEach.call(document.querySelectorAll(".dot[data-workflow]"), function (el) {
+    var k = el.dataset.workflow + "\n" + el.dataset.branch;
+    (dots[k] = dots[k] || []).push(el);
+  });
+  var queue = Object.keys(dots);
+  var total = queue.length, loaded = 0;
+  function progress() {
+    // Full message beside the Add workflows heading; a spinner in the header.
+    var text = "Reading statuses " + loaded + " of " + total + "…";
+    var head = document.getElementById("progress-head");
+    document.getElementById("progress-text").textContent = text;
+    head.title = text;
+    document.getElementById("progress").hidden = head.hidden = loaded >= total;
+  }
+  progress();
+
+  function show(k, st) {
+    var parts = k.split("\n");
+    dots[k].forEach(function (el) {
+      el.className = "dot " + (CLASS[st.state] || "");
+      el.title = st.text;
+    });
+    if (parts[1] !== DEFAULT_BRANCH) { return; }
+    items.forEach(function (it) {
+      if (it.dataset.file !== parts[0]) { return; }
+      it.dataset.state = st.state;
+      var a = it.querySelector(".status");
+      a.textContent = st.text;
+      a.href = st.url;
+    });
+    document.querySelectorAll(".watch-item").forEach(function (w) {
+      if (w.dataset.file === parts[0] && st.state === "failing") { w.classList.add("red"); }
+    });
+  }
+
+  function next() {
+    var k = queue.shift();
+    if (!k) { return; }
+    var parts = k.split("\n");
+    var url = "/api/row?key=" + KEY + "&repo=" + encodeURIComponent(REPO) + "&workflow=" + encodeURIComponent(parts[0]) + "&branch=" + encodeURIComponent(parts[1]);
+    fetch(url).then(function (r) { return r.json(); })
+      .then(function (st) { show(k, st); })
+      .catch(function () { show(k, {state: "error", text: "could not read status", url: "#"}); })
+      .then(function () { loaded++; progress(); refresh(); next(); });
+  }
+  for (var n = 0; n < 6; n++) { next(); }
+
+  document.getElementById("filter").addEventListener("input", filter);
+  Array.prototype.forEach.call(document.querySelectorAll(".seg button"), function (b) {
+    b.addEventListener("click", function () {
+      mode = b.dataset.filter;
+      Array.prototype.forEach.call(document.querySelectorAll(".seg button"), function (x) { x.classList.toggle("on", x === b); });
+      filter();
+    });
+  });
+  refresh();
+})();
+</script>
+{{template "busy" .}}
+</body>
+</html>

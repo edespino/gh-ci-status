@@ -1,0 +1,68 @@
+{{/* SPDX-License-Identifier: Apache-2.0 */ -}}
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ci-status</title>
+<style>
+:root{--bg:#fafafa;--fg:#18181b;--muted:#71717a;--row:#fff;--bad:#dc2626;--badbg:#fef2f2;--ok:#16a34a;--run:#ca8a04;--other:#a1a1aa;--link:#1d4ed8;--btn:#e4e4e7}
+@media (prefers-color-scheme: dark){:root{--bg:#18181b;--fg:#e4e4e7;--muted:#a1a1aa;--row:#27272a;--badbg:#3f1d1d;--link:#93c5fd;--btn:#3f3f46}}
+body{background:var(--bg);color:var(--fg);font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;margin:24px auto;max-width:1100px;padding:0 16px}
+header{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;margin-bottom:12px}
+.wordmark{display:block;flex:none}
+h1{font-size:20px;margin:0}.sub{color:var(--muted);margin:0;flex:1 1 400px}
+.actions{display:flex;gap:12px;align-items:center}.actions form{margin:0}
+button{background:var(--btn);color:var(--fg);border:0;border-radius:4px;padding:5px 12px;font:inherit;cursor:pointer}
+button.btn,.btn{display:inline-flex;align-items:center;gap:6px;background:var(--btn);color:var(--fg);text-decoration:none;border-radius:4px;padding:5px 12px}
+.btn svg{width:16px;height:16px}
+.row{display:grid;grid-template-columns:300px 140px 1fr;gap:12px;align-items:baseline;background:var(--row);border-left:8px solid var(--other);border-radius:4px;padding:8px 12px;margin:5px 0}
+.row.bad{border-left-color:var(--bad);background:var(--badbg)}.row.ok{border-left-color:var(--ok)}.row.run{border-left-color:var(--run)}
+.n small{display:block;color:var(--muted);font:12px ui-monospace,Menlo,monospace}
+.d{color:var(--muted)}.age{color:var(--bad)}.bad .s{color:var(--bad);font-weight:600}.ok .s{color:var(--ok)}.run .s{color:var(--run)}
+.error{background:var(--badbg);border-left:8px solid var(--bad);padding:8px 12px;border-radius:4px}
+a{color:var(--link)}.gap{height:12px}
+@media (max-width:700px){.row{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+<h1>{{wordmark}}</h1>
+<p class="sub">{{with .RepoList}}{{.}} · {{end}}{{.Summary}} · generated {{.Generated}}</p>
+<div class="actions">
+<form method="post" action="/refresh?key={{.Key}}" data-busy="Refreshing from GitHub…"><button class="btn" type="submit">{{template "icon-refresh"}}Refresh</button></form>
+<a class="btn" href="/configure?key={{.Key}}" data-busy="Loading Configure…" title="choose what to watch">{{template "icon-gear"}}Configure</a>
+</div>
+</header>
+{{if .Error}}<p class="error">{{.Error}}</p>{{end}}
+{{range $i, $r := .Rows}}{{if gapAt $.Rows $i}}<div class="gap"></div>{{end}}
+<div class="row {{stateClass $r.State}}">
+<span class="n"><a href="{{historyURL $r.Repo $r.Watch.Workflow $r.Watch.Branch}}">{{$r.Name}}</a><small>{{if $.MultiRepo}}{{$r.Repo}} · {{end}}{{$r.Watch.Workflow}} · {{$r.Watch.Branch}}</small></span>
+{{- if eq $r.State "failing"}}
+<a class="s" href="{{$r.Latest.HTMLURL}}">failing #{{$r.Latest.RunNumber}}</a>
+<span class="d"><b class="age">red {{$r.Age}}</b>{{with $r.FailedStep}} · failed at <a href="{{.URL}}">{{.Label}}</a>{{end}}
+{{- if $r.LastGreen}} · {{plural $r.FailedRuns "failed run"}} since last green <a href="{{$r.LastGreen.HTMLURL}}">#{{$r.LastGreen.RunNumber}} {{localTime $r.LastGreen.CreatedAt}}</a>
+{{- else if $r.AllHistory}} · never green on {{$r.Watch.Branch}} · {{plural $r.FailedRuns "failed run"}}
+{{- else}} · no green in the last {{plural $r.FailedRuns (printf "%s run" $r.Watch.Branch)}}{{end}}</span>
+{{- else if eq $r.State "running"}}
+<a class="s" href="{{$r.Latest.HTMLURL}}">running #{{$r.Latest.RunNumber}}</a>
+<span class="d">started {{localTime (started $r.Latest)}}{{with $r.Previous}} · previous: {{outcome .}} <a href="{{.HTMLURL}}">#{{.RunNumber}}</a>{{end}}</span>
+{{- else if eq $r.State "passing"}}
+<a class="s" href="{{$r.Latest.HTMLURL}}">passing #{{$r.Latest.RunNumber}}</a>
+<span class="d">{{localTime (started $r.Latest)}}</span>
+{{- else if eq $r.State "other"}}
+<a class="s" href="{{$r.Latest.HTMLURL}}">{{$r.Conclusion}} #{{$r.Latest.RunNumber}}</a>
+<span class="d">{{localTime (started $r.Latest)}}</span>
+{{- else if eq $r.State "none"}}
+<span class="s">no runs</span>
+<span class="d">no run on {{$r.Watch.Branch}} yet</span>
+{{- else}}
+<span class="s">error</span>
+<span class="d">{{$r.Err}}</span>
+{{- end}}
+</div>
+{{else}}{{if not .Error}}<p class="sub">Nothing watched. <a href="/configure?key={{.Key}}" data-busy="Loading Configure…">Open Configure</a> to choose workflows.</p>{{end}}
+{{end}}
+{{template "busy" .}}
+</body>
+</html>
