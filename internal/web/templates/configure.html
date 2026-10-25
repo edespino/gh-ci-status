@@ -93,11 +93,11 @@ nav.repos a.repo.on{outline:2px solid var(--link)}
 <button type="button" data-filter="failing">Failing <span id="n-failing">…</span></button>
 <button type="button" data-filter="unwatched">Not watched <span id="n-unwatched"></span></button>
 </span>
-<form method="post" action="/watch-many?key={{.Key}}" id="watch-shown" data-busy="Adding workflows…" data-confirm="Watch 0 workflows on {{.DefaultBranch}}?"><input type="hidden" name="repo" value="{{$.Repo}}"><span id="shown-inputs"></span><button type="submit" disabled>Watch <span id="n-shown">0</span> shown</button></form>
+<form method="post" action="/watch-many?key={{.Key}}" id="watch-shown" data-busy="Adding workflows…" data-confirm="Watch 0 workflows on {{.DefaultBranch}}?"><input type="hidden" name="repo" value="{{$.Repo}}"><span id="shown-inputs"></span><button type="submit" disabled title="adds the shown workflows not watched yet, skipping any turned off on GitHub">Watch <span id="n-shown">0</span> shown</button></form>
 <form method="post" action="/watch-many?key={{.Key}}" id="watch-failing" data-busy="Adding failing workflows…"><input type="hidden" name="repo" value="{{$.Repo}}"><span id="failing-inputs"></span><button type="submit" disabled>Watch all failing <span id="n-add-failing"></span></button></form>
 </div>
 {{range .Items}}{{$file := .File}}
-<div class="add-item" data-file="{{.File}}" data-name="{{.Name}} {{.File}}" data-watched="{{.Watched}}" data-state="">
+<div class="add-item" data-file="{{.File}}" data-name="{{.Name}} {{.File}}" data-watched="{{.Watched}}" data-active="{{eq .State "active"}}" data-state="">
 <span class="dot" data-workflow="{{.File}}" data-branch="{{$.DefaultBranch}}"></span>
 <span><b>{{.Name}}</b> <small>{{.File}}</small>{{if and .State (ne .State "active")}} <em class="warn">{{.State}}</em>{{end}}</span>
 <a class="mono status" href="#">reading…</a>
@@ -122,14 +122,15 @@ nav.repos a.repo.on{outline:2px solid var(--link)}
   var mode = "all";
 
   // Counts and "Watch all failing" wait until every status has loaded, so
-  // they never act on a partial list.
+  // they never act on a partial list. Like "Watch N shown", "Watch all failing"
+  // offers only workflows that are active on GitHub.
   function refresh() {
     var done = loaded >= total;
     var failing = 0, unwatched = 0, toAdd = [];
     items.forEach(function (it) {
       if (it.dataset.state === "failing") {
         failing++;
-        if (it.dataset.watched !== "true") { toAdd.push(it.dataset.file); }
+        if (it.dataset.watched !== "true" && it.dataset.active === "true") { toAdd.push(it.dataset.file); }
       }
       if (it.dataset.watched !== "true") { unwatched++; }
     });
@@ -147,9 +148,9 @@ nav.repos a.repo.on{outline:2px solid var(--link)}
     filter();
   }
 
-  // filter shows the matching rows and offers the shown, unwatched ones to
-  // "Watch N shown". With the Failing filter it waits for every status, like
-  // "Watch all failing".
+  // filter shows the matching rows and offers the shown, unwatched ones that
+  // are active on GitHub (not disabled or deleted) to "Watch N shown". With the
+  // Failing filter it waits for every status, like "Watch all failing".
   function filter() {
     var q = document.getElementById("filter").value.toLowerCase();
     var shown = [];
@@ -158,7 +159,7 @@ nav.repos a.repo.on{outline:2px solid var(--link)}
       if (mode === "failing") { show = show && it.dataset.state === "failing"; }
       if (mode === "unwatched") { show = show && it.dataset.watched !== "true"; }
       it.hidden = !show;
-      if (show && it.dataset.watched !== "true") { shown.push(it.dataset.file); }
+      if (show && it.dataset.watched !== "true" && it.dataset.active === "true") { shown.push(it.dataset.file); }
     });
     var form = document.getElementById("watch-shown");
     var box = document.getElementById("shown-inputs");
@@ -222,14 +223,40 @@ nav.repos a.repo.on{outline:2px solid var(--link)}
   for (var n = 0; n < 6; n++) { next(); }
 
   document.getElementById("filter").addEventListener("input", filter);
+  function setMode(m) {
+    mode = m;
+    Array.prototype.forEach.call(document.querySelectorAll(".seg button"), function (x) { x.classList.toggle("on", x.dataset.filter === m); });
+  }
   Array.prototype.forEach.call(document.querySelectorAll(".seg button"), function (b) {
     b.addEventListener("click", function () {
-      mode = b.dataset.filter;
-      Array.prototype.forEach.call(document.querySelectorAll(".seg button"), function (x) { x.classList.toggle("on", x === b); });
+      setMode(b.dataset.filter);
       filter();
     });
   });
+
+  // The view (filter text, filter button, scroll position) survives the reload
+  // after a change, so several workflows can be added one after another. It is
+  // saved when a form is actually sent and used once; a declined confirmation
+  // saves nothing.
+  var VIEW = "gh-ci-status/configure/" + REPO;
+  document.addEventListener("submit", function (e) {
+    if (e.defaultPrevented) { return; }
+    try {
+      sessionStorage.setItem(VIEW, JSON.stringify({q: document.getElementById("filter").value, mode: mode, y: window.scrollY}));
+    } catch (err) {}
+  });
+  var restoreY = 0;
+  try {
+    var v = JSON.parse(sessionStorage.getItem(VIEW) || "null");
+    sessionStorage.removeItem(VIEW);
+    if (v) {
+      document.getElementById("filter").value = v.q || "";
+      if (["all", "failing", "unwatched"].indexOf(v.mode) !== -1) { setMode(v.mode); }
+      restoreY = v.y || 0;
+    }
+  } catch (err) {}
   refresh();
+  if (restoreY) { window.scrollTo(0, restoreY); }
 })();
 </script>
 {{template "busy" .}}

@@ -56,7 +56,9 @@ On the first run:
 4. **Configure** lists every workflow in that repository with its current status on the default
    branch. Pick what to watch: **+ main** for one workflow, **Watch N shown** for everything
    the filter shows, **Watch all failing** for every failing one, or another branch under
-   **other branches**. Changes save as you click.
+   **other branches**. Changes save as you click, and the filter stays as it was, so you can
+   add several one after another. The two "Watch" buttons skip workflows turned off on GitHub;
+   to watch everything else, choose **All**, clear the filter and press **Watch N shown**.
 5. **Done** shows the status page. Press **Refresh** whenever you want it read again.
 
 From the terminal instead:

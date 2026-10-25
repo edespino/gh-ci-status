@@ -309,15 +309,18 @@ func setupHTML(t *testing.T) string {
 }
 
 // TestWatchShownFollowsFilter filters the Add list in headless Chrome and
-// checks that "Watch N shown" offers exactly the shown, unwatched workflows,
-// and follows the filter as it changes.
+// checks that "Watch N shown" offers exactly the shown, unwatched workflows
+// that are active on GitHub (not disabled or deleted), and follows the filter
+// as it changes.
 func TestWatchShownFollowsFilter(t *testing.T) {
 	chrome(t)
 	p := sampleConfigurePage()
 	p.Items = append(p.Items,
 		ConfigureItem{File: "d.yml", Name: "Deploy", State: "active"},
 		ConfigureItem{File: "e.yml", Name: "Deploy docs", State: "active"},
-		ConfigureItem{File: "f.yml", Name: "Deploy site", State: "active", Watched: true})
+		ConfigureItem{File: "f.yml", Name: "Deploy site", State: "active", Watched: true},
+		ConfigureItem{File: "g.yml", Name: "Deploy old", State: "disabled_manually"},
+		ConfigureItem{File: "h.yml", Name: "Deploy gone", State: "deleted"})
 	var b bytes.Buffer
 	if err := renderConfigure(&b, p); err != nil {
 		t.Fatal(err)
@@ -351,8 +354,89 @@ setTimeout(function () {
 	m := regexp.MustCompile(`data-result="([^"]*)"`).FindStringSubmatch(chromeDOM(t, "file://"+path))
 	want := "Watch 2 shown|d.yml,e.yml|on|Watch 2 workflows on main? / " +
 		"Watch 0 shown||off|Watch 0 workflows on main? / " +
-		"Watch 3 shown|c.yml,d.yml,e.yml|on|Watch 3 workflows on main?"
+		"Watch 2 shown|d.yml,e.yml|on|Watch 2 workflows on main?"
 	if m == nil || strings.ReplaceAll(m[1], "&gt;", ">") != want {
 		t.Fatalf("got  %v\nwant %s", m, want)
+	}
+}
+
+// viewPage is the Configure page with extra "Deploy" workflows, a stubbed
+// status read, beforeScript run before the page's own script, and probe run
+// after it; it returns the probe's data-result.
+func viewPage(t *testing.T, beforeScript, probe string) string {
+	t.Helper()
+	p := sampleConfigurePage()
+	p.Items = append(p.Items,
+		ConfigureItem{File: "d.yml", Name: "Deploy", State: "active"},
+		ConfigureItem{File: "e.yml", Name: "Deploy docs", State: "active"},
+		ConfigureItem{File: "f.yml", Name: "Deploy site", State: "active", Watched: true})
+	var b bytes.Buffer
+	if err := renderConfigure(&b, p); err != nil {
+		t.Fatal(err)
+	}
+	stub := `<body><script>
+window.fetch = function () { return Promise.resolve({json: function () { return {state: "passing", text: "passing", url: "#"}; }}); };
+` + beforeScript + `
+</script>`
+	page := strings.Replace(strings.Replace(b.String(), "<body>", stub, 1), "</body>", `<script>setTimeout(function () {`+probe+`}, 100);</script></body>`, 1)
+	path := filepath.Join(t.TempDir(), "configure.html")
+	if err := os.WriteFile(path, []byte(page), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	m := regexp.MustCompile(`data-result="([^"]*)"`).FindStringSubmatch(chromeDOM(t, "file://"+path))
+	if m == nil {
+		t.Fatal("probe gave no result")
+	}
+	return m[1]
+}
+
+const viewKey = `"gh-ci-status/configure/` + testRepo + `"`
+
+// After a change on Configure, the reloaded page shows the same filter, so
+// several workflows can be added one after another; the saved view is used
+// once.
+func TestConfigureRestoresViewAfterChange(t *testing.T) {
+	chrome(t)
+	got := viewPage(t, `sessionStorage.setItem(`+viewKey+`, JSON.stringify({q: "deploy", mode: "unwatched", y: 0}));`, `
+  var shown = Array.prototype.filter.call(document.querySelectorAll(".add-item"), function (i) { return getComputedStyle(i).display !== "none"; });
+  document.body.setAttribute("data-result", [
+    document.getElementById("filter").value,
+    document.querySelector('[data-filter="unwatched"]').classList.contains("on") ? "unwatched-on" : "unwatched-off",
+    shown.map(function (i) { return i.dataset.file; }).join(","),
+    sessionStorage.getItem(`+viewKey+`) === null ? "used-once" : "still-saved"].join("|"));`)
+	if got != "deploy|unwatched-on|d.yml,e.yml|used-once" {
+		t.Fatalf("restored view = %q", got)
+	}
+}
+
+// Pressing a row's "+ main" saves the view for the reload; a confirmation the
+// user declines saves nothing.
+func TestConfigureSavesViewOnChange(t *testing.T) {
+	chrome(t)
+	got := viewPage(t, ``, `
+  var f = document.getElementById("filter");
+  f.value = "deploy"; f.dispatchEvent(new Event("input"));
+  document.querySelector('[data-filter="unwatched"]').click();
+  window.addEventListener("submit", function (e) { e.preventDefault(); });
+  window.confirm = function () { return false; };
+  document.querySelector('form[action^="/unwatch-all"]').requestSubmit();
+  var r = [sessionStorage.getItem(`+viewKey+`) === null ? "declined-nothing-saved" : "declined-saved"];
+  document.querySelector('.add-item[data-file="d.yml"] form').requestSubmit();
+  var s = JSON.parse(sessionStorage.getItem(`+viewKey+`) || "{}");
+  r.push(s.q + "," + s.mode + "," + (typeof s.y));
+  document.body.setAttribute("data-result", r.join("|"));`)
+	if got != "declined-nothing-saved|deploy,unwatched,number" {
+		t.Fatalf("saved view = %q", got)
+	}
+}
+
+// "Watch all failing" skips workflows that are not active on GitHub too.
+func TestWatchAllFailingSkipsTurnedOff(t *testing.T) {
+	chrome(t)
+	got := viewPage(t, `window.fetch = function () { return Promise.resolve({json: function () { return {state: "failing", text: "failing", url: "#"}; }}); };`, `
+  var files = Array.prototype.map.call(document.querySelectorAll('#failing-inputs input[name="workflow"]'), function (i) { return i.value; });
+  document.body.setAttribute("data-result", files.join(","));`)
+	if got != "d.yml,e.yml" {
+		t.Fatalf("Watch all failing offers %q, want only the active, unwatched ones", got)
 	}
 }
