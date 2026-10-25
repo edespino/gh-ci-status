@@ -46,6 +46,34 @@ func (p StatusPage) MultiRepo() bool { return len(p.Repos) > 1 }
 // RepoList names the repositories for the header.
 func (p StatusPage) RepoList() string { return strings.Join(p.Repos, ", ") }
 
+// FilterButton is one state button above the status rows.
+type FilterButton struct {
+	State cistatus.State
+	Label string
+	Count int
+}
+
+// Filters are the state buttons for the states present, in row order.
+func (p StatusPage) Filters() []FilterButton {
+	counts := map[cistatus.State]int{}
+	for _, r := range p.Rows {
+		counts[r.State]++
+	}
+	var out []FilterButton
+	for _, s := range []struct {
+		state cistatus.State
+		label string
+	}{
+		{cistatus.Failing, "Red"}, {cistatus.Error, "Unreadable"}, {cistatus.Running, "Running"}, {cistatus.Other, "Other"},
+		{cistatus.None, "No runs"}, {cistatus.Passing, "Passing"}, {cistatus.Disabled, "Disabled"},
+	} {
+		if counts[s.state] > 0 {
+			out = append(out, FilterButton{State: s.state, Label: s.label, Count: counts[s.state]})
+		}
+	}
+	return out
+}
+
 // ConfigurePage chooses what to watch in one repository.
 type ConfigurePage struct {
 	Repo          string

@@ -440,3 +440,71 @@ func TestWatchAllFailingSkipsTurnedOff(t *testing.T) {
 		t.Fatalf("Watch all failing offers %q, want only the active, unwatched ones", got)
 	}
 }
+
+// statusPage renders the status page with rows, runs beforeScript before the
+// page's own script and probe after it, and returns the probe's data-result.
+func statusPage(t *testing.T, rows []Row, beforeScript, probe string) string {
+	t.Helper()
+	page := strings.Replace(strings.Replace(statusHTML(t, rows...), "<body>", "<body><script>"+beforeScript+"</script>", 1),
+		"</body>", `<script>setTimeout(function () {`+probe+`}, 50);</script></body>`, 1)
+	path := filepath.Join(t.TempDir(), "status.html")
+	if err := os.WriteFile(path, []byte(page), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	m := regexp.MustCompile(`data-result="([^"]*)"`).FindStringSubmatch(chromeDOM(t, "file://"+path))
+	if m == nil {
+		t.Fatal("probe gave no result")
+	}
+	return m[1]
+}
+
+func filterRows() []Row {
+	green := Row{Repo: testRepo, Watch: mainWatch, Name: "Green", State: Passing, Latest: runAt(50, 5, "main", "completed", "success", "2026-10-23T12:00:00Z")}
+	deploy := Row{Repo: testRepo, Watch: Watch{Workflow: "deploy.yml", Branch: "main"}, Name: "Deploy", State: Passing, Latest: runAt(51, 6, "main", "completed", "success", "2026-10-23T12:00:00Z")}
+	return []Row{redRow(), green, deploy}
+}
+
+const shownJS = `function shown() { return Array.prototype.filter.call(document.querySelectorAll(".row"), function (r) { return getComputedStyle(r).display !== "none"; }).map(function (r) { return r.dataset.name.split(" ")[0]; }).join(","); }
+function gapShown() { var g = document.querySelector(".gap"); return g && getComputedStyle(g).display !== "none" ? "gap" : "no-gap"; }
+`
+
+func TestStatusFilterNarrowsRows(t *testing.T) {
+	chrome(t)
+	got := statusPage(t, filterRows(), ``, shownJS+`
+  var f = document.getElementById("filter"), r = [];
+  f.value = "deploy"; f.dispatchEvent(new Event("input"));
+  r.push(shown() + ":" + gapShown());
+  f.value = ""; f.dispatchEvent(new Event("input"));
+  document.querySelector('[data-filter="failing"]').click();
+  r.push(shown());
+  f.value = "nothing-like-this"; f.dispatchEvent(new Event("input"));
+  r.push(shown() + ":" + (document.getElementById("no-match").hidden ? "no-note" : "note"));
+  document.querySelector('[data-filter="all"]').click();
+  f.value = ""; f.dispatchEvent(new Event("input"));
+  r.push(shown() + ":" + gapShown());
+  document.body.setAttribute("data-result", r.join(" / "));`)
+	if got != "Deploy:no-gap / Build / :note / Build,Green,Deploy:gap" {
+		t.Fatalf("got %q", got)
+	}
+}
+
+// The filter survives Refresh (used once); a saved state that is no longer
+// present falls back to All.
+func TestStatusKeepsFilterThroughRefresh(t *testing.T) {
+	chrome(t)
+	got := statusPage(t, filterRows(), `sessionStorage.setItem("gh-ci-status/status", JSON.stringify({q: "e", mode: "passing"}));`, shownJS+`
+  var r = [document.getElementById("filter").value, shown(), sessionStorage.getItem("gh-ci-status/status") === null ? "used-once" : "still-saved"];
+  window.addEventListener("submit", function (e) { e.preventDefault(); });
+  document.querySelector('form[action^="/refresh"]').requestSubmit();
+  var s = JSON.parse(sessionStorage.getItem("gh-ci-status/status") || "{}");
+  r.push(s.q + "," + s.mode);
+  document.body.setAttribute("data-result", r.join("|"));`)
+	if got != "e|Green,Deploy|used-once|e,passing" {
+		t.Fatalf("got %q", got)
+	}
+	gone := statusPage(t, filterRows(), `sessionStorage.setItem("gh-ci-status/status", JSON.stringify({q: "", mode: "running"}));`, shownJS+`
+  document.body.setAttribute("data-result", shown() + ":" + document.querySelector(".seg button.on").dataset.filter);`)
+	if gone != "Build,Green,Deploy:all" {
+		t.Fatalf("saved state not present: got %q", gone)
+	}
+}

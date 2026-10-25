@@ -326,7 +326,7 @@ func TestDisabledRow(t *testing.T) {
 	off := Row{Repo: testRepo, Watch: Watch{Workflow: "old.yml", Branch: "main"}, Name: "Old", State: cistatus.Disabled,
 		WorkflowState: "disabled_manually", Latest: runAt(150, 9, "main", "completed", "failure", "2026-08-01T12:00:00Z")}
 	html := statusHTML(t, off)
-	for _, want := range []string{`<div class="row off">`, ">disabled<", "turned off on GitHub (disabled_manually)",
+	for _, want := range []string{`<div class="row off"`, ">disabled<", "turned off on GitHub (disabled_manually)",
 		"last run: failing", `href="https://github.com/` + testRepo + `/actions/runs/150"`} {
 		if !strings.Contains(html, want) {
 			t.Errorf("page lacks %s", want)
@@ -349,5 +349,26 @@ func TestConfigurePageWatchShownForm(t *testing.T) {
 		if !strings.Contains(tag, want) {
 			t.Errorf("watch-shown form lacks %s:\n%s", want, tag)
 		}
+	}
+}
+
+// The status page's filter: a box and one button per state present, with
+// counts; rows carry what the filter matches on.
+func TestStatusFilterBar(t *testing.T) {
+	green := Row{Repo: testRepo, Watch: mainWatch, Name: "Green", State: Passing, Latest: runAt(50, 5, "main", "completed", "success", "2026-10-23T12:00:00Z")}
+	off := Row{Repo: testRepo, Watch: Watch{Workflow: "old.yml", Branch: "main"}, Name: "Old", State: Disabled, WorkflowState: "disabled_manually"}
+	html := statusHTML(t, redRow(), green, off)
+	for _, want := range []string{`id="filter"`, `data-filter="all" class="on">All 3<`, `data-filter="failing">Red 1<`,
+		`data-filter="passing">Passing 1<`, `data-filter="disabled">Disabled 1<`, `id="no-match" hidden`,
+		`data-state="failing" data-name="Build B b.yml release/x ` + testRepo + `"`, `[hidden]{display:none!important}`} {
+		if !strings.Contains(html, want) {
+			t.Errorf("status page lacks %s", want)
+		}
+	}
+	if strings.Contains(html, `data-filter="running"`) || strings.Contains(html, `data-filter="none"`) {
+		t.Error("buttons only for states present")
+	}
+	if empty := statusHTML(t); strings.Contains(empty, `id="filter"`) {
+		t.Error("no filter when nothing is watched")
 	}
 }

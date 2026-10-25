@@ -8,6 +8,7 @@
 <style>
 :root{--bg:#fafafa;--fg:#18181b;--muted:#71717a;--row:#fff;--bad:#dc2626;--badbg:#fef2f2;--ok:#16a34a;--run:#ca8a04;--other:#a1a1aa;--link:#1d4ed8;--btn:#e4e4e7}
 @media (prefers-color-scheme: dark){:root{--bg:#18181b;--fg:#e4e4e7;--muted:#a1a1aa;--row:#27272a;--badbg:#3f1d1d;--link:#93c5fd;--btn:#3f3f46}}
+[hidden]{display:none!important} /* rows set display:grid, which would otherwise override hidden */
 body{background:var(--bg);color:var(--fg);font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;margin:24px auto;max-width:1100px;padding:0 16px}
 header{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;margin-bottom:12px}
 .wordmark{display:block;flex:none;color:var(--muted)}
@@ -21,6 +22,9 @@ button.btn,.btn{display:inline-flex;align-items:center;gap:6px;background:var(--
 .n small{display:block;color:var(--muted);font:12px ui-monospace,Menlo,monospace}
 .d{color:var(--muted)}.age{color:var(--bad)}.bad .s{color:var(--bad);font-weight:600}.ok .s{color:var(--ok)}.run .s{color:var(--run)}
 .error{background:var(--badbg);border-left:8px solid var(--bad);padding:8px 12px;border-radius:4px}
+.tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:4px 0 10px}
+input[type=search]{flex:1 1 240px;padding:5px 8px;font:inherit}
+.seg{display:inline-flex;flex-wrap:wrap;gap:2px}.seg button.on{outline:2px solid var(--link)}
 a{color:var(--link)}.gap{height:12px}
 @media (max-width:700px){.row{grid-template-columns:1fr}}
 </style>
@@ -35,8 +39,13 @@ a{color:var(--link)}.gap{height:12px}
 </div>
 </header>
 {{if .Error}}<p class="error">{{.Error}}</p>{{end}}
-{{range $i, $r := .Rows}}{{if gapAt $.Rows $i}}<div class="gap"></div>{{end}}
-<div class="row {{stateClass $r.State}}">
+{{if .Rows}}<div class="tools">
+<input type="search" id="filter" placeholder="filter by name, file, branch" aria-label="filter the rows">
+<span class="seg"><button type="button" data-filter="all" class="on">All {{len .Rows}}</button>{{range .Filters}}<button type="button" data-filter="{{.State}}">{{.Label}} {{.Count}}</button>{{end}}</span>
+</div>
+<p class="sub" id="no-match" hidden>No workflow matches the filter.</p>
+{{end}}{{range $i, $r := .Rows}}{{if gapAt $.Rows $i}}<div class="gap"></div>{{end}}
+<div class="row {{stateClass $r.State}}" data-state="{{$r.State}}" data-name="{{$r.Name}} {{$r.Watch.Workflow}} {{$r.Watch.Branch}} {{$r.Repo}}">
 <span class="n"><a href="{{historyURL $r.Repo $r.Watch.Workflow $r.Watch.Branch}}">{{$r.Name}}</a><small>{{if $.MultiRepo}}{{$r.Repo}} · {{end}}{{$r.Watch.Workflow}} · {{$r.Watch.Branch}}</small></span>
 {{- if eq $r.State "failing"}}
 <a class="s" href="{{$r.Latest.HTMLURL}}">failing #{{$r.Latest.RunNumber}}</a>
@@ -66,6 +75,47 @@ a{color:var(--link)}.gap{height:12px}
 </div>
 {{else}}{{if not .Error}}<p class="sub">Nothing watched. <a href="/configure?key={{.Key}}" data-busy="Loading Configure…">Open Configure</a> to choose workflows.</p>{{end}}
 {{end}}
+<script>
+(function () {
+  // Filter the rows by text and by state. The view is kept through Refresh
+  // (saved when a form is sent, used once), like Configure's.
+  var rows = Array.prototype.slice.call(document.querySelectorAll(".row[data-state]"));
+  if (!rows.length) { return; }
+  var input = document.getElementById("filter"), mode = "all";
+  var buttons = Array.prototype.slice.call(document.querySelectorAll(".seg button"));
+  function setMode(m) {
+    mode = m;
+    buttons.forEach(function (b) { b.classList.toggle("on", b.dataset.filter === m); });
+  }
+  function apply() {
+    var q = input.value.toLowerCase(), shown = 0;
+    rows.forEach(function (r) {
+      var show = r.dataset.name.toLowerCase().indexOf(q) !== -1 && (mode === "all" || r.dataset.state === mode);
+      r.hidden = !show;
+      if (show) { shown++; }
+    });
+    var filtering = q !== "" || mode !== "all";
+    Array.prototype.forEach.call(document.querySelectorAll(".gap"), function (g) { g.hidden = filtering; });
+    document.getElementById("no-match").hidden = shown > 0;
+  }
+  input.addEventListener("input", apply);
+  buttons.forEach(function (b) { b.addEventListener("click", function () { setMode(b.dataset.filter); apply(); }); });
+  var VIEW = "gh-ci-status/status";
+  document.addEventListener("submit", function (e) {
+    if (e.defaultPrevented) { return; }
+    try { sessionStorage.setItem(VIEW, JSON.stringify({q: input.value, mode: mode})); } catch (err) {}
+  });
+  try {
+    var v = JSON.parse(sessionStorage.getItem(VIEW) || "null");
+    sessionStorage.removeItem(VIEW);
+    if (v) {
+      input.value = v.q || "";
+      if (buttons.some(function (b) { return b.dataset.filter === v.mode; })) { setMode(v.mode); }
+    }
+  } catch (err) {}
+  apply();
+})();
+</script>
 {{template "busy" .}}
 </body>
 </html>
