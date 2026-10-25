@@ -31,6 +31,8 @@ func writeText(w io.Writer, rows []cistatus.Row, multiRepo bool) {
 			detail = "no run on " + r.Watch.Branch + " yet"
 		case cistatus.Error:
 			detail = r.Err
+		case cistatus.Disabled:
+			detail = "turned off on GitHub (" + r.WorkflowState + ")"
 		}
 		name := r.Name
 		if multiRepo {

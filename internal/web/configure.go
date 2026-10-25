@@ -139,6 +139,8 @@ func rowStatus(r cistatus.Row) RowStatus {
 		s.Text = "no run on " + r.Watch.Branch
 	case cistatus.Error:
 		s.Text = r.Err
+	case cistatus.Disabled:
+		s.Text = "turned off on GitHub (" + r.WorkflowState + ")"
 	}
 	return s
 }

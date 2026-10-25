@@ -254,6 +254,11 @@ func (s *Server) apiRow(w http.ResponseWriter, r *http.Request) {
 	pair := cistatus.Watch{Workflow: wf, Branch: branch}
 	k := s.keptFor(repo)
 	st, ok := k.rowStatus(pair)
+	if state, off := k.disabled(wf); !ok && off {
+		// Turned off on GitHub, as the listing already read says: no request.
+		st = rowStatus(cistatus.Row{Repo: repo, Watch: pair, State: cistatus.Disabled, WorkflowState: state})
+		ok = true
+	}
 	if !ok {
 		if client, err := s.client(r.Context()); err != nil {
 			st = RowStatus{State: cistatus.Error, Text: err.Error(), URL: cistatus.HistoryURL(repo, wf, branch)}

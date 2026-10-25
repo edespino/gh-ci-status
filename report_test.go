@@ -23,13 +23,15 @@ func TestReportJSON(t *testing.T) {
 	partial := Row{Repo: testRepo, Watch: Watch{"p.yml", "main"}, Name: "Partial", State: Failing, AllHistory: false,
 		Latest: runPtr(mkRun(6, 6, "main", "completed", "failure", "2026-10-20T12:00:00Z", "")), RedSince: ts("2026-10-02T12:00:00Z"), Age: "22 days", FailedRuns: 100}
 	gone := Row{Repo: testRepo, Watch: Watch{"gone.yml", "dev"}, Name: "gone.yml", State: Error, Err: "GET /x: 404 Not Found"}
-	b, err := json.Marshal(NewReport([]string{testRepo}, []Row{red, never, partial, gone}, testNow))
+	off := Row{Repo: testRepo, Watch: Watch{"old.yml", "main"}, Name: "Old", State: Disabled, WorkflowState: "disabled_manually",
+		Latest: runPtr(mkRun(150, 9, "main", "completed", "failure", "2026-08-01T12:00:00Z", ""))}
+	b, err := json.Marshal(NewReport([]string{testRepo}, []Row{red, never, partial, gone, off}, testNow))
 	if err != nil {
 		t.Fatal(err)
 	}
 	s := string(b)
 	for _, want := range []string{
-		`"generated":"2026-10-24T12:00:00Z"`, `"summary":"3 red, oldest 23 days · 1 unreadable"`, `"repos":["example-org/example-repo"]`,
+		`"generated":"2026-10-24T12:00:00Z"`, `"summary":"3 red, oldest 23 days · 1 unreadable · 1 disabled"`, `"repos":["example-org/example-repo"]`,
 		`"repo":"example-org/example-repo","workflow":"b.yml","name":"Build","branch":"main","state":"failing"`,
 		`"red_since":"2026-10-14T12:00:00Z","age":"10 days","failed_runs":2`,
 		`"failed_step":{"label":"Compile (build)","url":"https://github.com/x/job/9"}`,
@@ -37,6 +39,7 @@ func TestReportJSON(t *testing.T) {
 		`"last_green":{"number":18,`, `"never_green":true`,
 		`"history_url":"https://github.com/example-org/example-repo/actions/workflows/gone.yml?query=branch%3Adev"`,
 		`"state":"error"`, `"error":"GET /x: 404 Not Found"`,
+		`"name":"Old","branch":"main","state":"disabled","workflow_state":"disabled_manually","latest":{"number":9,`,
 	} {
 		if !strings.Contains(s, want) {
 			t.Errorf("report lacks %s\n%s", want, s)

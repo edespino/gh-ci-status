@@ -176,3 +176,25 @@ func TestKeptConcurrentUse(t *testing.T) {
 		t.Fatalf("configure after concurrent use: %d", rec.Code)
 	}
 }
+
+// Configure's dot for a workflow turned off on GitHub comes from the listing
+// already read: "disabled", with no runs request.
+func TestAPIRowDisabledFromListing(t *testing.T) {
+	s, f, _ := newTestServer(t)
+	serveRepo(f, "b.yml")
+	writeConfig(t, s)
+	f.Handle(tr+"/actions/workflows?per_page=100", 200, `{"workflows":[{"name":"WF b.yml","path":".github/workflows/b.yml","state":"active"},`+
+		`{"name":"Old","path":".github/workflows/old.yml","state":"disabled_inactivity"}]}`)
+	body := do(s, "GET", keyed("/configure")+"&repo="+testRepo, host, nil).Body.String()
+	if !strings.Contains(body, `disabled: "off"`) || !strings.Contains(body, ".dot.off{") {
+		t.Error("Configure does not style disabled dots")
+	}
+	before := len(f.Requests())
+	st := rowAt(t, s, "old.yml")
+	if st.State != Disabled || st.Text != "turned off on GitHub (disabled_inactivity)" {
+		t.Fatalf("status %+v", st)
+	}
+	if len(f.Requests()) != before {
+		t.Fatalf("read GitHub for a disabled workflow: %v", f.Requests()[before:])
+	}
+}

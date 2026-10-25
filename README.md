@@ -29,6 +29,8 @@ For every watched workflow on a branch, one row:
 - **running:** since when, and the previous result.
 - **passing**, **cancelled** and other results, with the time of the run.
 - **no runs** on that branch yet, or **error** when GitHub could not be read.
+- **disabled** (greyed, at the bottom) when the workflow is turned off on GitHub, with its last
+  run. Retiring a workflow by disabling it takes it off the red list.
 
 Every name links to the workflow's run history on that branch.
 
@@ -103,7 +105,8 @@ The JSON report has stable field names:
 }
 ```
 
-`state` is one of `failing`, `error`, `running`, `other`, `none`, `passing`.
+`state` is one of `failing`, `error`, `running`, `other`, `none`, `passing`, `disabled`.
+A `disabled` row also has `workflow_state`, GitHub's word for it (for example `disabled_manually`).
 
 ## How it works
 

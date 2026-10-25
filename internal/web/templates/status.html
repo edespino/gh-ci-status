@@ -17,7 +17,7 @@ button{background:var(--btn);color:var(--fg);border:0;border-radius:4px;padding:
 button.btn,.btn{display:inline-flex;align-items:center;gap:6px;background:var(--btn);color:var(--fg);text-decoration:none;border-radius:4px;padding:5px 12px}
 .btn svg{width:16px;height:16px}
 .row{display:grid;grid-template-columns:300px 140px 1fr;gap:12px;align-items:baseline;background:var(--row);border-left:8px solid var(--other);border-radius:4px;padding:8px 12px;margin:5px 0}
-.row.bad{border-left-color:var(--bad);background:var(--badbg)}.row.ok{border-left-color:var(--ok)}.row.run{border-left-color:var(--run)}
+.row.bad{border-left-color:var(--bad);background:var(--badbg)}.row.off{opacity:.55}.row.ok{border-left-color:var(--ok)}.row.run{border-left-color:var(--run)}
 .n small{display:block;color:var(--muted);font:12px ui-monospace,Menlo,monospace}
 .d{color:var(--muted)}.age{color:var(--bad)}.bad .s{color:var(--bad);font-weight:600}.ok .s{color:var(--ok)}.run .s{color:var(--run)}
 .error{background:var(--badbg);border-left:8px solid var(--bad);padding:8px 12px;border-radius:4px}
@@ -53,6 +53,9 @@ a{color:var(--link)}.gap{height:12px}
 {{- else if eq $r.State "other"}}
 <a class="s" href="{{$r.Latest.HTMLURL}}">{{$r.Conclusion}} #{{$r.Latest.RunNumber}}</a>
 <span class="d">{{localTime (started $r.Latest)}}</span>
+{{- else if eq $r.State "disabled"}}
+<span class="s">disabled</span>
+<span class="d">turned off on GitHub ({{$r.WorkflowState}}){{with $r.Latest}} · last run: {{outcome .}} <a href="{{.HTMLURL}}">#{{.RunNumber}}</a>{{end}}</span>
 {{- else if eq $r.State "none"}}
 <span class="s">no runs</span>
 <span class="d">no run on {{$r.Watch.Branch}} yet</span>

@@ -42,6 +42,11 @@ type Workflow struct {
 	State string `json:"state"`
 }
 
+// Disabled reports whether the workflow is turned off on GitHub: by hand
+// (disabled_manually), after a repository's inactivity (disabled_inactivity),
+// or in a fork (disabled_fork).
+func (w Workflow) Disabled() bool { return strings.HasPrefix(w.State, "disabled_") }
+
 // Run is one run of a workflow.
 type Run struct {
 	ID             int64     `json:"id"`

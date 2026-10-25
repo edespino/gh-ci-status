@@ -136,8 +136,9 @@ func TestSortRows(t *testing.T) {
 		{Name: "old", State: Failing, RedSince: ts("2026-08-13T00:00:00Z")},
 		{Name: "error", State: Error},
 		{Name: "other", State: Other},
+		{Name: "off", State: Disabled},
 	}
-	want := []string{"old", "young", "error", "running", "other", "none", "passing"}
+	want := []string{"old", "young", "error", "running", "other", "none", "passing", "off"}
 	got := SortRows(in)
 	for i, w := range want {
 		if got[i].Name != w {
@@ -164,8 +165,9 @@ func TestSummary(t *testing.T) {
 		{Name: "Never", State: None},
 		{Name: "Lint", State: Passing},
 		{Name: "Docs", State: Passing},
+		{Name: "Retired", State: Disabled},
 	}
-	if got := Summary(rows); got != "2 red, oldest 120 days · 1 running · 1 unreadable · 1 other result · 1 with no runs · 2 passing" {
+	if got := Summary(rows); got != "2 red, oldest 120 days · 1 running · 1 unreadable · 1 other result · 1 with no runs · 2 passing · 1 disabled" {
 		t.Fatalf("summary = %q", got)
 	}
 	green := make([]Row, 7)

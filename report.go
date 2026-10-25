@@ -15,22 +15,24 @@ type Report struct {
 
 // ReportRow is one watched workflow + branch pair.
 type ReportRow struct {
-	Repo       string     `json:"repo"`
-	Workflow   string     `json:"workflow"`
-	Name       string     `json:"name"`
-	Branch     string     `json:"branch"`
-	State      State      `json:"state"`
-	Conclusion string     `json:"conclusion,omitempty"`  // for "other": GitHub's word
-	RedSince   *time.Time `json:"red_since,omitempty"`   // failing: first red run after the last green
-	Age        string     `json:"age,omitempty"`         // failing: how long it has been red
-	FailedRuns int        `json:"failed_runs,omitempty"` // failing: red runs since the last green
-	NeverGreen bool       `json:"never_green,omitempty"` // failing: no green run in its whole history
-	FailedStep *Link      `json:"failed_step,omitempty"` // failing: first failed step and its log
-	Latest     *RunRef    `json:"latest,omitempty"`
-	Previous   *RunRef    `json:"previous,omitempty"`   // running: newest completed run
-	LastGreen  *RunRef    `json:"last_green,omitempty"` // failing: newest success before the red runs
-	HistoryURL string     `json:"history_url"`
-	Error      string     `json:"error,omitempty"`
+	Repo       string `json:"repo"`
+	Workflow   string `json:"workflow"`
+	Name       string `json:"name"`
+	Branch     string `json:"branch"`
+	State      State  `json:"state"`
+	Conclusion string `json:"conclusion,omitempty"` // for "other": GitHub's word
+	// WorkflowState is GitHub\'s word for a "disabled" row, e.g. "disabled_manually".
+	WorkflowState string     `json:"workflow_state,omitempty"`
+	RedSince      *time.Time `json:"red_since,omitempty"`   // failing: first red run after the last green
+	Age           string     `json:"age,omitempty"`         // failing: how long it has been red
+	FailedRuns    int        `json:"failed_runs,omitempty"` // failing: red runs since the last green
+	NeverGreen    bool       `json:"never_green,omitempty"` // failing: no green run in its whole history
+	FailedStep    *Link      `json:"failed_step,omitempty"` // failing: first failed step and its log
+	Latest        *RunRef    `json:"latest,omitempty"`
+	Previous      *RunRef    `json:"previous,omitempty"`   // running: newest completed run
+	LastGreen     *RunRef    `json:"last_green,omitempty"` // failing: newest success before the red runs
+	HistoryURL    string     `json:"history_url"`
+	Error         string     `json:"error,omitempty"`
 }
 
 // Link is a labelled URL.
@@ -54,7 +56,7 @@ func NewReport(repos []string, rows []Row, now time.Time) Report {
 	for _, r := range rows {
 		out := ReportRow{
 			Repo: r.Repo, Workflow: r.Watch.Workflow, Name: r.Name, Branch: r.Watch.Branch, State: r.State,
-			Conclusion: r.Conclusion, Age: r.Age, FailedRuns: r.FailedRuns, Error: r.Err,
+			Conclusion: r.Conclusion, WorkflowState: r.WorkflowState, Age: r.Age, FailedRuns: r.FailedRuns, Error: r.Err,
 			Latest: runRef(r.Latest), Previous: runRef(r.Previous), LastGreen: runRef(r.LastGreen),
 			HistoryURL: HistoryURL(r.Repo, r.Watch.Workflow, r.Watch.Branch),
 			NeverGreen: r.State == Failing && r.LastGreen == nil && r.AllHistory,

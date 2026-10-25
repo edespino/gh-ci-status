@@ -127,6 +127,8 @@ func stateClass(s cistatus.State) string {
 		return "run"
 	case cistatus.Passing:
 		return "ok"
+	case cistatus.Disabled:
+		return "off"
 	}
 	return "other"
 }

@@ -109,6 +109,13 @@ func TestWriteText(t *testing.T) {
 		}
 	}
 	b.Reset()
+	off := cistatus.Row{Repo: testRepo, Watch: w("old.yml", "main"), Name: "Old", State: cistatus.Disabled, WorkflowState: "disabled_manually",
+		Latest: run1(150, 9, "main", "failure", "2026-08-01T12:00:00Z")}
+	writeText(&b, []cistatus.Row{off}, false)
+	if line := strings.Split(b.String(), "\n")[1]; !strings.HasPrefix(line, "disabled  Old on main  turned off on GitHub (disabled_manually)") {
+		t.Errorf("disabled line = %q", line)
+	}
+	b.Reset()
 	writeText(&b, rows, true)
 	if !strings.Contains(b.String(), "Build B ("+testRepo+") on release/x") {
 		t.Errorf("with several repositories, lines name theirs: %q", b.String())

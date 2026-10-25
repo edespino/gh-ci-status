@@ -145,3 +145,27 @@ func TestReadRowWithoutJobs(t *testing.T) {
 		t.Fatalf("row %+v requests %v", row, f.Requests())
 	}
 }
+
+// A workflow turned off on GitHub is shown as disabled, not red, and its jobs
+// are not read; its last run is kept for the link.
+func TestCollectDisabledWorkflow(t *testing.T) {
+	f := fakegithub.New(t)
+	serveWorkflow(f, "old.yml", "Old", "main", runJSON(150, 9, "main", "completed", "failure", "2026-08-01T12:00:00Z"))
+	f.Handle("/repos/o/r/actions/workflows/old.yml", 200, `{"name":"Old","path":".github/workflows/old.yml","state":"disabled_manually"}`)
+	rows := Collect(context.Background(), testClient(f), fr, []Watch{{"old.yml", "main"}}, testNow)
+	r := rows[0]
+	if r.State != Disabled || r.WorkflowState != "disabled_manually" || r.Latest == nil || r.Latest.RunNumber != 9 {
+		t.Fatalf("row = %+v", r)
+	}
+	if !r.RedSince.IsZero() || r.Age != "" || r.FailedStep != nil || count(f.Requests(), "/jobs") != 0 {
+		t.Fatalf("a disabled row carries no red details and reads no jobs: %+v %v", r, f.Requests())
+	}
+}
+
+func TestWorkflowDisabled(t *testing.T) {
+	for state, want := range map[string]bool{"active": false, "deleted": false, "disabled_manually": true, "disabled_inactivity": true, "disabled_fork": true} {
+		if got := (Workflow{State: state}).Disabled(); got != want {
+			t.Errorf("%s: Disabled() = %v", state, got)
+		}
+	}
+}

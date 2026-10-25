@@ -29,6 +29,7 @@ form.inline{display:inline;margin:0}
 a{color:var(--link)}
 .dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--none);flex:none;vertical-align:middle}
 .dot.bad{background:var(--bad)}.dot.ok{background:var(--ok)}.dot.run{background:var(--run)}
+.dot.off{background:none;box-shadow:inset 0 0 0 2px var(--none)}
 .watch-item{display:flex;flex-wrap:wrap;align-items:center;gap:8px;background:var(--row);border-radius:4px;padding:6px 10px;margin:4px 0}
 .watch-item.red{background:var(--badbg)}
 .chip{display:inline-flex;align-items:center;gap:5px;background:var(--chip);border-radius:12px;padding:1px 4px 1px 8px;font:12px ui-monospace,Menlo,monospace}
@@ -115,7 +116,7 @@ nav.repos a.repo.on{outline:2px solid var(--link)}
   var KEY = {{.Key}};
   var REPO = {{.Repo}};
   var DEFAULT_BRANCH = {{.DefaultBranch}};
-  var CLASS = {failing: "bad", error: "bad", passing: "ok", running: "run"};
+  var CLASS = {failing: "bad", error: "bad", passing: "ok", running: "run", disabled: "off"};
   var items = Array.prototype.slice.call(document.querySelectorAll(".add-item"));
   var mode = "all";
 

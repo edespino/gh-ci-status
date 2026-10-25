@@ -33,12 +33,13 @@ type (
 )
 
 const (
-	Failing = cistatus.Failing
-	Error   = cistatus.Error
-	Running = cistatus.Running
-	Other   = cistatus.Other
-	None    = cistatus.None
-	Passing = cistatus.Passing
+	Failing  = cistatus.Failing
+	Error    = cistatus.Error
+	Running  = cistatus.Running
+	Other    = cistatus.Other
+	None     = cistatus.None
+	Passing  = cistatus.Passing
+	Disabled = cistatus.Disabled
 )
 
 const testRepo = "example-org/example-repo"

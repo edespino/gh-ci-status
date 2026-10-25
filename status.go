@@ -15,12 +15,13 @@ type State string
 
 // The states, in the order SortRows puts them.
 const (
-	Failing State = "failing"
-	Error   State = "error"
-	Running State = "running"
-	Other   State = "other"
-	None    State = "none"
-	Passing State = "passing"
+	Failing  State = "failing"
+	Error    State = "error"
+	Running  State = "running"
+	Other    State = "other"
+	None     State = "none"
+	Passing  State = "passing"
+	Disabled State = "disabled" // the workflow is turned off on GitHub
 )
 
 // StepRef points at the failing job's log; Label is "step (job)", or the
@@ -45,6 +46,9 @@ type Row struct {
 	AllHistory bool // for Failing with no green: the fetch covered every run
 	FailedStep *StepRef
 	Err        string
+	// WorkflowState is GitHub's word for a Disabled row's workflow, for
+	// example "disabled_manually".
+	WorkflowState string
 }
 
 var (
@@ -169,11 +173,11 @@ func plural(n int, word string) string {
 	return fmt.Sprintf("%d %ss", n, word)
 }
 
-var order = map[State]int{Failing: 0, Error: 1, Running: 2, Other: 3, None: 4, Passing: 5}
+var order = map[State]int{Failing: 0, Error: 1, Running: 2, Other: 3, None: 4, Passing: 5, Disabled: 6}
 
 // SortRows puts reds first (oldest red at the top), then errors, running,
-// other conclusions, no runs, passing; ties keep their order. rows is not
-// modified.
+// other conclusions, no runs, passing, disabled; ties keep their order. rows
+// is not modified.
 func SortRows(rows []Row) []Row {
 	out := append([]Row(nil), rows...)
 	sort.SliceStable(out, func(i, j int) bool {
@@ -186,7 +190,7 @@ func SortRows(rows []Row) []Row {
 }
 
 // Summary is one short line: how many are red (and the oldest red's age),
-// then the other states present, passing last.
+// then the other states present, passing and disabled last.
 func Summary(rows []Row) string {
 	if len(rows) == 0 {
 		return "nothing watched"
@@ -212,6 +216,7 @@ func Summary(rows []Row) string {
 		{Other, func(n int) string { return plural(n, "other result") }},
 		{None, func(n int) string { return fmt.Sprintf("%d with no runs", n) }},
 		{Passing, func(n int) string { return fmt.Sprintf("%d passing", n) }},
+		{Disabled, func(n int) string { return fmt.Sprintf("%d disabled", n) }},
 	} {
 		if n := counts[s.state]; n > 0 {
 			parts = append(parts, s.text(n))

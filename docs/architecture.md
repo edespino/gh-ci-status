@@ -50,7 +50,12 @@ A row is decided by `Evaluate`:
 4. For a failing row, the jobs of the newest run are read once to find the first failed job
    and step, linked to the job's log.
 
-Rows sort reds first (oldest red at the top), then unreadable, running, other, no runs, passing.
+5. When GitHub reports the workflow as turned off (`disabled_manually`, `disabled_inactivity`
+   or `disabled_fork`), the row is disabled instead: not red, no jobs read, its last run kept
+   for the link. Configure takes this from the workflow list it already read.
+
+Rows sort reds first (oldest red at the top), then unreadable, running, other, no runs, passing,
+disabled.
 
 ## Requests
 

@@ -14,6 +14,7 @@ const maxParallel = 8
 // Collect reads GitHub for every watch in repo and returns sorted rows. Each
 // workflow file's name is looked up once; jobs are read only for red rows. A
 // failed read turns that watch into an Error row and leaves the others alone.
+// A workflow turned off on GitHub gives a Disabled row.
 func Collect(ctx context.Context, c *Client, repo string, watches []Watch, now time.Time) []Row {
 	var files []string
 	seen := map[string]bool{}
@@ -25,24 +26,29 @@ func Collect(ctx context.Context, c *Client, repo string, watches []Watch, now t
 	}
 
 	var mu sync.Mutex
-	names := map[string]string{}
+	workflows := map[string]Workflow{}
 	lookupErr := map[string]error{}
 	parallel(len(files), func(i int) {
 		wf, err := c.Workflow(ctx, repo, files[i])
 		mu.Lock()
 		defer mu.Unlock()
-		names[files[i]], lookupErr[files[i]] = wf.Name, err
+		workflows[files[i]], lookupErr[files[i]] = wf, err
 	})
 
 	rows := make([]Row, len(watches))
 	parallel(len(watches), func(i int) {
 		w := watches[i]
-		name := names[w.Workflow]
+		wf := workflows[w.Workflow]
+		name := wf.Name
 		if name == "" {
 			name = w.Workflow
 		}
 		if err := lookupErr[w.Workflow]; err != nil {
 			rows[i] = Row{Repo: repo, Watch: w, Name: name, State: Error, Err: err.Error()}
+			return
+		}
+		if wf.Disabled() {
+			rows[i] = disabledRow(ReadRow(ctx, c, repo, w, name, now, false), wf.State)
 			return
 		}
 		rows[i] = ReadRow(ctx, c, repo, w, name, now, true)
@@ -63,6 +69,12 @@ func ReadRow(ctx context.Context, c *Client, repo string, w Watch, name string, 
 		row.FailedStep = failedStep(ctx, c, repo, row.Latest.ID)
 	}
 	return row
+}
+
+// disabledRow keeps only what a turned-off workflow's row shows: its name and
+// its last run.
+func disabledRow(r Row, workflowState string) Row {
+	return Row{Repo: r.Repo, Watch: r.Watch, Name: r.Name, State: Disabled, WorkflowState: workflowState, Latest: r.Latest}
 }
 
 // failedStep returns the first red job of a run and its first red step, or

@@ -319,3 +319,23 @@ func TestRefreshButtonsHaveIcon(t *testing.T) {
 		t.Errorf("the two Refresh icons differ:\n%s\n%s", s[1], c[1])
 	}
 }
+
+// A workflow turned off on GitHub is a greyed row that says so, with its last
+// run, and is not red.
+func TestDisabledRow(t *testing.T) {
+	off := Row{Repo: testRepo, Watch: Watch{Workflow: "old.yml", Branch: "main"}, Name: "Old", State: cistatus.Disabled,
+		WorkflowState: "disabled_manually", Latest: runAt(150, 9, "main", "completed", "failure", "2026-08-01T12:00:00Z")}
+	html := statusHTML(t, off)
+	for _, want := range []string{`<div class="row off">`, ">disabled<", "turned off on GitHub (disabled_manually)",
+		"last run: failing", `href="https://github.com/` + testRepo + `/actions/runs/150"`} {
+		if !strings.Contains(html, want) {
+			t.Errorf("page lacks %s", want)
+		}
+	}
+	if !regexp.MustCompile(`\.row\.off\{[^}]*opacity`).MatchString(html) {
+		t.Error("disabled rows are not greyed")
+	}
+	if strings.Contains(html, `class="age"`) || strings.Contains(html, `class="row bad"`) {
+		t.Error("a disabled row must not look red")
+	}
+}

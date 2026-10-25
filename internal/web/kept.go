@@ -42,6 +42,22 @@ func (k *kept) setListing(l *listing) {
 	k.list = l
 }
 
+// disabled reports whether the kept listing has file turned off on GitHub,
+// with GitHub's word for it.
+func (k *kept) disabled(file string) (string, bool) {
+	k.mu.Lock()
+	defer k.mu.Unlock()
+	if k.list == nil {
+		return "", false
+	}
+	for _, w := range k.list.workflows {
+		if f, ok := cistatus.WorkflowFile(w); ok && f == file && w.Disabled() {
+			return w.State, true
+		}
+	}
+	return "", false
+}
+
 func (k *kept) rowStatus(w cistatus.Watch) (RowStatus, bool) {
 	k.mu.Lock()
 	defer k.mu.Unlock()
