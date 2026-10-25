@@ -83,8 +83,8 @@ func TestConfigurePageInBrowser(t *testing.T) {
 	if m := regexp.MustCompile(`id="n-failing">(\d+)<`).FindStringSubmatch(dom); m == nil || m[1] != "1" {
 		t.Errorf("Failing count = %v, want 1", m)
 	}
-	if !regexp.MustCompile(`<form method="post" action="/watch-failing[^>]*>.*?<input type="hidden" name="workflow" value="red\.yml">.*?<button type="submit">`).MatchString(dom) {
-		t.Errorf("watch-failing form not enabled with red.yml:\n%s", regexp.MustCompile(`(?s)<form method="post" action="/watch-failing.*?</form>`).FindString(dom))
+	if !regexp.MustCompile(`<form method="post" action="/watch-many[^>]*>.*?<input type="hidden" name="workflow" value="red\.yml">.*?<button type="submit">`).MatchString(dom) {
+		t.Errorf("watch-failing form not enabled with red.yml:\n%s", regexp.MustCompile(`(?s)<form method="post" action="/watch-many.*?</form>`).FindString(dom))
 	}
 }
 
@@ -306,4 +306,53 @@ func setupHTML(t *testing.T) string {
 		t.Fatal(err)
 	}
 	return b.String()
+}
+
+// TestWatchShownFollowsFilter filters the Add list in headless Chrome and
+// checks that "Watch N shown" offers exactly the shown, unwatched workflows,
+// and follows the filter as it changes.
+func TestWatchShownFollowsFilter(t *testing.T) {
+	chrome(t)
+	p := sampleConfigurePage()
+	p.Items = append(p.Items,
+		ConfigureItem{File: "d.yml", Name: "Deploy", State: "active"},
+		ConfigureItem{File: "e.yml", Name: "Deploy docs", State: "active"},
+		ConfigureItem{File: "f.yml", Name: "Deploy site", State: "active", Watched: true})
+	var b bytes.Buffer
+	if err := renderConfigure(&b, p); err != nil {
+		t.Fatal(err)
+	}
+	stub := `<body><script>
+window.fetch = function () { return Promise.resolve({json: function () { return {state: "passing", text: "passing", url: "#"}; }}); };
+</script>`
+	probe := `<script>
+setTimeout(function () {
+  function state() {
+    var form = document.getElementById("watch-shown");
+    var files = Array.prototype.map.call(form.querySelectorAll('#shown-inputs input[name="workflow"]'), function (i) { return i.value; });
+    return form.querySelector("button").textContent.replace(/\s+/g, " ").trim() + "|" + files.join(",") + "|" +
+      (form.querySelector("button").disabled ? "off" : "on") + "|" + form.dataset.confirm;
+  }
+  var f = document.getElementById("filter"), r = [];
+  f.value = "deploy"; f.dispatchEvent(new Event("input"));
+  r.push(state());
+  f.value = "zzz"; f.dispatchEvent(new Event("input"));
+  r.push(state());
+  f.value = ""; f.dispatchEvent(new Event("input"));
+  r.push(state());
+  document.body.setAttribute("data-result", r.join(" / "));
+}, 100);
+</script></body>`
+	page := strings.Replace(strings.Replace(b.String(), "<body>", stub, 1), "</body>", probe, 1)
+	path := filepath.Join(t.TempDir(), "configure.html")
+	if err := os.WriteFile(path, []byte(page), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	m := regexp.MustCompile(`data-result="([^"]*)"`).FindStringSubmatch(chromeDOM(t, "file://"+path))
+	want := "Watch 2 shown|d.yml,e.yml|on|Watch 2 workflows on main? / " +
+		"Watch 0 shown||off|Watch 0 workflows on main? / " +
+		"Watch 3 shown|c.yml,d.yml,e.yml|on|Watch 3 workflows on main?"
+	if m == nil || strings.ReplaceAll(m[1], "&gt;", ">") != want {
+		t.Fatalf("got  %v\nwant %s", m, want)
+	}
 }

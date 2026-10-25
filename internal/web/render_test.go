@@ -196,7 +196,7 @@ func TestConfigurePageAddList(t *testing.T) {
 
 func TestConfigurePageWatchFailingForm(t *testing.T) {
 	html := configureHTML(t)
-	if !strings.Contains(html, `action="/watch-failing?key=`+testKey+`"`) || !strings.Contains(html, `id="watch-failing"`) {
+	if !strings.Contains(html, `action="/watch-many?key=`+testKey+`"`) || !strings.Contains(html, `id="watch-failing"`) {
 		t.Fatal("no watch-failing form")
 	}
 	if !strings.Contains(html, `"/api/row?key=`) && !strings.Contains(html, "/api/row") {
@@ -222,7 +222,7 @@ func TestPagesHaveBusyOverlay(t *testing.T) {
 			t.Errorf("status page element %q has no data-busy", tag)
 		}
 	}
-	for _, want := range []string{`href="/?key=`, `action="/watch-failing?key=`, `action="/unwatch?key=`, `action="/watch?key=`} {
+	for _, want := range []string{`href="/?key=`, `action="/watch-many?key=`, `action="/unwatch?key=`, `action="/watch?key=`} {
 		for _, tag := range regexp.MustCompile(`<(form|a)[^>]*`+regexp.QuoteMeta(want)+`[^>]*>`).FindAllString(cfg, -1) {
 			if !strings.Contains(tag, "data-busy=") {
 				t.Errorf("configure page element %q has no data-busy", tag)
@@ -337,5 +337,17 @@ func TestDisabledRow(t *testing.T) {
 	}
 	if strings.Contains(html, `class="age"`) || strings.Contains(html, `class="row bad"`) {
 		t.Error("a disabled row must not look red")
+	}
+}
+
+// "Watch N shown" posts to the same route as "Watch all failing", carries the
+// repository, asks before saving, and starts disabled until the script fills it.
+func TestConfigurePageWatchShownForm(t *testing.T) {
+	tag := regexp.MustCompile(`(?s)<form[^>]*id="watch-shown"[^>]*>.*?</form>`).FindString(configureHTML(t))
+	for _, want := range []string{`action="/watch-many?key=` + testKey + `"`, "data-busy=", "data-confirm=",
+		`<input type="hidden" name="repo" value="` + testRepo + `">`, `id="shown-inputs"`, "disabled"} {
+		if !strings.Contains(tag, want) {
+			t.Errorf("watch-shown form lacks %s:\n%s", want, tag)
+		}
 	}
 }

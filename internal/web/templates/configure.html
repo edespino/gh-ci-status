@@ -93,7 +93,8 @@ nav.repos a.repo.on{outline:2px solid var(--link)}
 <button type="button" data-filter="failing">Failing <span id="n-failing">…</span></button>
 <button type="button" data-filter="unwatched">Not watched <span id="n-unwatched"></span></button>
 </span>
-<form method="post" action="/watch-failing?key={{.Key}}" id="watch-failing" data-busy="Adding failing workflows…"><input type="hidden" name="repo" value="{{$.Repo}}"><span id="failing-inputs"></span><button type="submit" disabled>Watch all failing <span id="n-add-failing"></span></button></form>
+<form method="post" action="/watch-many?key={{.Key}}" id="watch-shown" data-busy="Adding workflows…" data-confirm="Watch 0 workflows on {{.DefaultBranch}}?"><input type="hidden" name="repo" value="{{$.Repo}}"><span id="shown-inputs"></span><button type="submit" disabled>Watch <span id="n-shown">0</span> shown</button></form>
+<form method="post" action="/watch-many?key={{.Key}}" id="watch-failing" data-busy="Adding failing workflows…"><input type="hidden" name="repo" value="{{$.Repo}}"><span id="failing-inputs"></span><button type="submit" disabled>Watch all failing <span id="n-add-failing"></span></button></form>
 </div>
 {{range .Items}}{{$file := .File}}
 <div class="add-item" data-file="{{.File}}" data-name="{{.Name}} {{.File}}" data-watched="{{.Watched}}" data-state="">
@@ -146,14 +147,30 @@ nav.repos a.repo.on{outline:2px solid var(--link)}
     filter();
   }
 
+  // filter shows the matching rows and offers the shown, unwatched ones to
+  // "Watch N shown". With the Failing filter it waits for every status, like
+  // "Watch all failing".
   function filter() {
     var q = document.getElementById("filter").value.toLowerCase();
+    var shown = [];
     items.forEach(function (it) {
       var show = it.dataset.name.toLowerCase().indexOf(q) !== -1;
       if (mode === "failing") { show = show && it.dataset.state === "failing"; }
       if (mode === "unwatched") { show = show && it.dataset.watched !== "true"; }
       it.hidden = !show;
+      if (show && it.dataset.watched !== "true") { shown.push(it.dataset.file); }
     });
+    var form = document.getElementById("watch-shown");
+    var box = document.getElementById("shown-inputs");
+    box.textContent = "";
+    shown.forEach(function (f) {
+      var i = document.createElement("input");
+      i.type = "hidden"; i.name = "workflow"; i.value = f;
+      box.appendChild(i);
+    });
+    document.getElementById("n-shown").textContent = shown.length;
+    form.dataset.confirm = "Watch " + shown.length + " workflow" + (shown.length === 1 ? "" : "s") + " on " + DEFAULT_BRANCH + "?";
+    form.querySelector("button").disabled = shown.length === 0 || (mode === "failing" && loaded < total);
   }
 
   var dots = {};

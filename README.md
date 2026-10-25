@@ -54,8 +54,9 @@ On the first run:
 3. The page opens on **Setup**. Type a repository as `owner/name`, or paste its GitHub address.
    gh-ci-status checks that your login can read it and that it has GitHub Actions workflows.
 4. **Configure** lists every workflow in that repository with its current status on the default
-   branch. Pick what to watch: **+ main** for one workflow, **Watch all failing** for every
-   failing one, or another branch under **other branches**. Changes save as you click.
+   branch. Pick what to watch: **+ main** for one workflow, **Watch N shown** for everything
+   the filter shows, **Watch all failing** for every failing one, or another branch under
+   **other branches**. Changes save as you click.
 5. **Done** shows the status page. Press **Refresh** whenever you want it read again.
 
 From the terminal instead:

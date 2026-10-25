@@ -179,7 +179,7 @@ func TestPostWithoutKeyRejected(t *testing.T) {
 	s, _, _ := newTestServer(t)
 	writeConfig(t, s, Watch{Workflow: "a.yml", Branch: "main"})
 	before, _ := os.ReadFile(filepath.Join(s.dir, "config.json"))
-	for _, path := range []string{"/watch", "/unwatch", "/watch-failing", "/unwatch-workflow", "/unwatch-all", "/setup/add", "/setup/remove", "/configure/refresh"} {
+	for _, path := range []string{"/watch", "/unwatch", "/watch-many", "/unwatch-workflow", "/unwatch-all", "/setup/add", "/setup/remove", "/configure/refresh"} {
 		req := httptest.NewRequest("POST", path, strings.NewReader(form("workflow", "b.yml", "branch", "main").Encode()))
 		req.Host = host
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -319,7 +319,7 @@ func TestWatchFailingAddsAll(t *testing.T) {
 	s, f, _ := newTestServer(t)
 	serveRepo(f, "b.yml")
 	writeConfig(t, s, Watch{Workflow: "a.yml", Branch: "main"})
-	rec := do(s, "POST", keyed("/watch-failing"), host, form("workflow", "x.yml", "workflow", "a.yml", "workflow", "y.yml", "workflow", "x.yml"))
+	rec := do(s, "POST", keyed("/watch-many"), host, form("workflow", "x.yml", "workflow", "a.yml", "workflow", "y.yml", "workflow", "x.yml"))
 	want := []Watch{{Workflow: "a.yml", Branch: "main"}, {Workflow: "x.yml", Branch: "main"}, {Workflow: "y.yml", Branch: "main"}}
 	got := loadConfig(t, s).Watches(testRepo)
 	if rec.Code != 303 || len(got) != 3 {
@@ -331,7 +331,7 @@ func TestWatchFailingAddsAll(t *testing.T) {
 		}
 	}
 	before, _ := os.ReadFile(filepath.Join(s.dir, "config.json"))
-	rec = do(s, "POST", keyed("/watch-failing"), host, form("workflow", "z.yml", "workflow", "../bad.yml"))
+	rec = do(s, "POST", keyed("/watch-many"), host, form("workflow", "z.yml", "workflow", "../bad.yml"))
 	after, _ := os.ReadFile(filepath.Join(s.dir, "config.json"))
 	if rec.Code != 400 || !strings.Contains(rec.Body.String(), "../bad.yml") || !bytes.Equal(before, after) {
 		t.Fatalf("bad input: code %d body %q changed=%v", rec.Code, rec.Body.String(), !bytes.Equal(before, after))
@@ -360,7 +360,7 @@ func TestConfigurePageCarriesKeyAndRepo(t *testing.T) {
 	writeConfig(t, s, Watch{Workflow: "b.yml", Branch: "main"})
 	body := do(s, "GET", keyed("/configure")+"&repo="+testRepo, host, nil).Body.String()
 	for _, want := range []string{`href="/?key=` + testKey + `"`, `action="/unwatch?key=` + testKey + `"`,
-		`action="/watch?key=` + testKey + `"`, `action="/watch-failing?key=` + testKey + `"`, "WF b.yml", "WF extra.yml",
+		`action="/watch?key=` + testKey + `"`, `action="/watch-many?key=` + testKey + `"`, "WF b.yml", "WF extra.yml",
 		`<input type="hidden" name="repo" value="` + testRepo + `">`, `href="/setup?key=` + testKey + `"`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("configure page lacks %s", want)

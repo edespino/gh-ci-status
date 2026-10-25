@@ -72,7 +72,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/row", s.apiRow)
 	mux.HandleFunc("POST /watch", s.watch)
 	mux.HandleFunc("POST /unwatch", s.unwatch)
-	mux.HandleFunc("POST /watch-failing", s.watchFailing)
+	mux.HandleFunc("POST /watch-many", s.watchMany)
 	mux.HandleFunc("POST /unwatch-workflow", s.unwatchWorkflow)
 	mux.HandleFunc("POST /unwatch-all", s.unwatchAll)
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
@@ -291,9 +291,10 @@ func (s *Server) unwatch(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// watchFailing adds the posted workflows (the ones the page saw failing) on
-// the default branch.
-func (s *Server) watchFailing(w http.ResponseWriter, r *http.Request) {
+// watchMany adds the posted workflows on the default branch: "Watch all
+// failing" posts the ones the page saw failing, "Watch N shown" the ones the
+// filter shows.
+func (s *Server) watchMany(w http.ResponseWriter, r *http.Request) {
 	s.change(w, r, func(form url.Values, repo string, defaultBranch func() (string, error)) (func(cistatus.Config) cistatus.Config, error) {
 		for _, f := range form["workflow"] {
 			if !cistatus.ValidWorkflowFile(f) {
