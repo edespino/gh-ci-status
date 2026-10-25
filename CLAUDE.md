@@ -41,7 +41,7 @@ Try changes against a scratch configuration so a real one is not touched:
 - Text in pages, messages and docs: plain words, no em or en dashes.
 - The JSON report's field names are a contract: add fields, do not rename or remove them.
 - The project, module, binary and settings folder are `gh-ci-status`; users run it as
-  `gh ci-status`. The logo deliberately reads "ci-status", the words typed after `gh`.
+  `gh ci-status`. The logo reads "gh-ci-status" with "gh-" in grey and "ci-status" coloured.
 - `OWNER` in `go.mod`, import paths and README badges is a placeholder for the GitHub owner,
   replaced when the repository is published.
 

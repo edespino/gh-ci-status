@@ -1,7 +1,7 @@
 <!-- Before publishing, replace OWNER with the GitHub account or organisation that
      hosts this repository: in the badges below, in go.mod and in the import paths. -->
 <p align="center">
-  <img src="assets/banner.svg" alt="ci-status: from red to green" width="640">
+  <img src="assets/banner.svg" alt="gh-ci-status: from red to green" width="640">
 </p>
 
 <p align="center">

@@ -266,7 +266,7 @@ func TestPagesShowWordmark(t *testing.T) {
 	cfg := configureHTML(t)
 	for name, page := range map[string]string{"status": statusHTML(t, redRow()), "configure": cfg, "setup": setupHTML(t)} {
 		header := strings.SplitN(page, "</header>", 2)[0]
-		if !regexp.MustCompile(`<header>\s*(<h1[^>]*>)?\s*<svg class="wordmark"[^>]*role="img" aria-label="ci-status"`).MatchString(header) {
+		if !regexp.MustCompile(`<header>\s*(<h1[^>]*>)?\s*<svg class="wordmark"[^>]*role="img" aria-label="gh-ci-status"`).MatchString(header) {
 			t.Errorf("%s header does not start with the wordmark: %s", name, header)
 		}
 		if strings.Contains(header, banner.Tagline) {
@@ -288,9 +288,13 @@ func TestWordmarkSameOnEveryPage(t *testing.T) {
 		t.Fatalf("wordmark differs or has no fixed size:\nstatus    %s\nconfigure %s\nsetup     %s", s, c, u)
 	}
 	resize := regexp.MustCompile(`\.wordmark\{[^}]*(height|width)`)
+	grey := regexp.MustCompile(`\.wordmark\{[^}]*color:var\(--muted\)`)
 	for name, page := range map[string]string{"status": status, "configure": cfg, "setup": setup} {
 		if m := resize.FindString(page); m != "" {
 			t.Errorf("%s page resizes the wordmark: %s", name, m)
+		}
+		if !grey.MatchString(page) {
+			t.Errorf("%s page does not give the wordmark's \"gh-\" its muted grey", name)
 		}
 	}
 }
