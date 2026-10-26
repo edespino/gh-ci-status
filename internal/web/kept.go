@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	cistatus "github.com/OWNER/gh-ci-status"
+	cistatus "github.com/edespino/gh-ci-status"
 )
 
 // kept is what Configure read from GitHub for one repository: the listing

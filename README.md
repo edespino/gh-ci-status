@@ -1,11 +1,9 @@
-<!-- Before publishing, replace OWNER with the GitHub account or organisation that
-     hosts this repository: in the badges below, in go.mod and in the import paths. -->
 <p align="center">
   <img src="assets/banner.svg" alt="gh-ci-status: from red to green" width="640">
 </p>
 
 <p align="center">
-  <a href="https://github.com/OWNER/gh-ci-status/actions/workflows/ci.yml"><img src="https://github.com/OWNER/gh-ci-status/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/edespino/gh-ci-status/actions/workflows/ci.yml"><img src="https://github.com/edespino/gh-ci-status/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License: Apache 2.0"></a>
 </p>
 
@@ -41,7 +39,7 @@ You need the [GitHub CLI](https://cli.github.com), logged in: `gh auth login`.
 Install the extension and start it:
 
 ```shell
-gh extension install OWNER/gh-ci-status
+gh extension install edespino/gh-ci-status
 gh ci-status serve
 ```
 
@@ -183,7 +181,7 @@ The root package, `cistatus`, holds everything except the web page and the comma
 other programs (for example an MCP server) can give the same answers:
 
 ```go
-import cistatus "github.com/OWNER/gh-ci-status"
+import cistatus "github.com/edespino/gh-ci-status"
 
 token, err := cistatus.GHToken(ctx)
 if err != nil {
@@ -211,7 +209,7 @@ methods to add and remove repositories and watches.
 You need Go 1.23 or newer and the GitHub CLI.
 
 ```shell
-git clone https://github.com/OWNER/gh-ci-status.git
+git clone https://github.com/edespino/gh-ci-status.git
 cd gh-ci-status
 make build                  # builds ./gh-ci-status
 gh extension install .      # run your build as 'gh ci-status'
@@ -237,6 +235,7 @@ makes a prerelease.
 
 ## License
 
-Apache License 2.0. See [LICENSE](LICENSE).
+Copyright 2026 Ed Espino. Licensed under the Apache License 2.0; see [LICENSE](LICENSE) and
+[NOTICE](NOTICE).
 
 gh-ci-status is not affiliated with or endorsed by GitHub.

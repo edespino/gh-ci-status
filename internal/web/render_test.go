@@ -5,7 +5,7 @@ package web
 import (
 	"bytes"
 	"fmt"
-	cistatus "github.com/OWNER/gh-ci-status"
+	cistatus "github.com/edespino/gh-ci-status"
 	"os"
 	"regexp"
 	"strings"

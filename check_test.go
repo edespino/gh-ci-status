@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/OWNER/gh-ci-status/internal/fakegithub"
+	"github.com/edespino/gh-ci-status/internal/fakegithub"
 )
 
 func TestCheckGH(t *testing.T) {

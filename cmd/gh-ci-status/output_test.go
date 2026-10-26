@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
-	cistatus "github.com/OWNER/gh-ci-status"
-	"github.com/OWNER/gh-ci-status/internal/banner"
-	"github.com/OWNER/gh-ci-status/internal/fakegithub"
+	cistatus "github.com/edespino/gh-ci-status"
+	"github.com/edespino/gh-ci-status/internal/banner"
+	"github.com/edespino/gh-ci-status/internal/fakegithub"
 )
 
 var ansi = regexp.MustCompile(`\x1b\[[0-9;]*m`)

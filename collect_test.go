@@ -5,7 +5,7 @@ package cistatus
 import (
 	"context"
 	"fmt"
-	"github.com/OWNER/gh-ci-status/internal/fakegithub"
+	"github.com/edespino/gh-ci-status/internal/fakegithub"
 	"strings"
 	"testing"
 	"time"

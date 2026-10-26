@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/OWNER/gh-ci-status/internal/fakegithub"
+	"github.com/edespino/gh-ci-status/internal/fakegithub"
 )
 
 // testClient reads the fake API with the token "tkn".

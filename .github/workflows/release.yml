@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Publishes prebuilt binaries to a GitHub release when a v* tag is pushed, so
-# 'gh extension install OWNER/gh-ci-status' works. Tags with a "-" (for example
+# 'gh extension install edespino/gh-ci-status' works. Tags with a "-" (for example
 # v1.0.0-rc.1) become prereleases.
 name: release
 

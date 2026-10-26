@@ -19,8 +19,8 @@ import (
 	"testing"
 	"time"
 
-	cistatus "github.com/OWNER/gh-ci-status"
-	"github.com/OWNER/gh-ci-status/internal/fakegithub"
+	cistatus "github.com/edespino/gh-ci-status"
+	"github.com/edespino/gh-ci-status/internal/fakegithub"
 )
 
 // TestMain pins the time zone before any test or server goroutine starts.

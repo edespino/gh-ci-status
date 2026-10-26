@@ -5,7 +5,7 @@ package cistatus
 import (
 	"context"
 	"errors"
-	"github.com/OWNER/gh-ci-status/internal/fakegithub"
+	"github.com/edespino/gh-ci-status/internal/fakegithub"
 	"net/http"
 	"net/url"
 	"strconv"

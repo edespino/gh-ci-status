@@ -24,14 +24,14 @@ import (
 	"syscall"
 	"time"
 
-	cistatus "github.com/OWNER/gh-ci-status"
-	"github.com/OWNER/gh-ci-status/internal/banner"
-	"github.com/OWNER/gh-ci-status/internal/web"
+	cistatus "github.com/edespino/gh-ci-status"
+	"github.com/edespino/gh-ci-status/internal/banner"
+	"github.com/edespino/gh-ci-status/internal/web"
 )
 
 const usage = `gh-ci-status: the current state of chosen GitHub Actions workflows, per branch.
 
-It is a GitHub CLI extension; install it with 'gh extension install OWNER/gh-ci-status'
+It is a GitHub CLI extension; install it with 'gh extension install edespino/gh-ci-status'
 and run it as 'gh ci-status'. The binary also runs on its own as 'gh-ci-status'.
 
 Usage:

@@ -7,7 +7,7 @@ import (
 	"io"
 	"time"
 
-	cistatus "github.com/OWNER/gh-ci-status"
+	cistatus "github.com/edespino/gh-ci-status"
 )
 
 // writeText prints the summary, then one line per row; with several
