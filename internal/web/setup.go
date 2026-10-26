@@ -27,6 +27,7 @@ type SetupPage struct {
 	SlackProblem string
 	SkipConfirm  bool   // confirmed actions run without asking
 	PrefsProblem string // prefs.json could not be read
+	AnyWatched   bool   // something is watched in some repository: Status shows
 }
 
 func (s *Server) setupPage(w http.ResponseWriter, r *http.Request) {
@@ -51,7 +52,7 @@ func (s *Server) renderSetup(w http.ResponseWriter, r *http.Request, code int, p
 	if err != nil {
 		p.Error = err.Error() + ". Adding a repository here replaces the file."
 	}
-	p.Repos = cfg.RepoNames()
+	p.Repos, p.AnyWatched = cfg.RepoNames(), anyWatched(cfg)
 	if client, err := s.client(r.Context()); err != nil {
 		p.Login = cistatus.Check{Name: "GitHub login", Detail: err.Error(), Fix: "Run 'gh auth login', then reload this page"}
 	} else {

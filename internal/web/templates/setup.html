@@ -42,7 +42,7 @@ form.slack button{grid-column:2;justify-self:start}
 {{wordmark}}
 <h1>Settings</h1>
 <span class="sub">GitHub login, repositories and Slack</span>
-{{if .Repos}}<a class="done" href="/?key={{.Key}}" data-busy="Reading GitHub…" title="back to the status page">Done</a>{{end}}
+{{if .AnyWatched}}<a class="done" href="/?key={{.Key}}" data-busy="Reading GitHub…" title="the status page">Status</a>{{end}}
 </header>
 {{if .Error}}<p class="error">{{.Error}}</p>{{end}}
 

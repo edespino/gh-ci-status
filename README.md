@@ -81,7 +81,7 @@ On the first run:
    **other branches**. Changes save as you click, and the filter stays as it was, so you can
    add several one after another. The two "Watch" buttons skip workflows turned off on GitHub;
    to watch everything else, choose **All**, clear the filter and press **Watch N shown**.
-5. **Done** shows the status page. Press **Refresh** whenever you want it read again. With many
+5. **Status** shows the status page (it appears once something is watched). Press **Refresh** whenever you want it read again. With many
    rows, the filter box and the state buttons (**Failing**, **Passing**, **Disabled** and so on, with
    counts) narrow the list; the filter stays through **Refresh**. **Workflows** (the checklist
    icon) changes what you watch; **Settings** (the gear) has the GitHub login, the repositories,

@@ -161,7 +161,7 @@ func TestLocalTime(t *testing.T) {
 // Phase 2 (Task 10): Configure page with a Watching list and an Add list.
 
 func sampleConfigurePage() ConfigurePage {
-	return ConfigurePage{Repo: testRepo, Repos: []string{testRepo}, DefaultBranch: "main", Key: testKey,
+	return ConfigurePage{Repo: testRepo, Repos: []string{testRepo}, DefaultBranch: "main", Key: testKey, AnyWatched: true,
 		Watching: []WatchItem{
 			{File: "b.yml", Name: "Build B", Branches: []string{"main", "release/x"}},
 			{File: "gone.yml", Name: "gone.yml", Missing: true, Branches: []string{"main"}},
@@ -310,11 +310,21 @@ func TestStatusNothingWatched(t *testing.T) {
 	}
 }
 
-// Done is a button in the header, not a bare link.
-func TestConfigureDoneButton(t *testing.T) {
-	tag := regexp.MustCompile(`<header>(?s:.*?)(<a [^>]*>Done</a>)(?s:.*?)</header>`).FindStringSubmatch(configureHTML(t))
+// Status, back to the status page, is a button in the header, shown once
+// something is watched.
+func TestWorkflowsStatusButton(t *testing.T) {
+	tag := regexp.MustCompile(`<header>(?s:.*?)(<a [^>]*>Status</a>)(?s:.*?)</header>`).FindStringSubmatch(configureHTML(t))
 	if tag == nil || !strings.Contains(tag[1], `class="done"`) || !strings.Contains(tag[1], `href="/?key=`+testKey+`"`) || !strings.Contains(tag[1], "data-busy=") {
-		t.Fatalf("Done in header = %v", tag)
+		t.Fatalf("Status in header = %v", tag)
+	}
+	p := sampleConfigurePage()
+	p.AnyWatched = false
+	var b bytes.Buffer
+	if err := renderConfigure(&b, p); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(b.String(), `class="done"`) {
+		t.Error("Status offered with nothing watched")
 	}
 }
 

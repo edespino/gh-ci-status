@@ -26,7 +26,7 @@ func TestSetupShowsLogin(t *testing.T) {
 		t.Error("the page is Settings, with an anchor on Repositories")
 	}
 	if !strings.Contains(body, "No repository yet") || strings.Contains(body, `class="done"`) {
-		t.Error("with nothing set up, Setup asks for a repository and offers no Done")
+		t.Error("with nothing set up, Settings asks for a repository and offers no Status")
 	}
 	if !strings.Contains(body, `action="/setup/add?key=`+testKey+`"`) || !strings.Contains(body, `name="repo"`) {
 		t.Error("no add form")
@@ -92,7 +92,7 @@ func TestSetupListsAndRemovesRepos(t *testing.T) {
 	}
 	s.keptFor("o/other").setRowStatus(Watch{Workflow: "c.yml", Branch: "dev"}, RowStatus{State: Passing})
 	body := do(s, "GET", keyed("/setup"), host, nil).Body.String()
-	for _, want := range []string{testRepo, "o/other", `href="/configure?key=` + testKey + `&amp;repo=o%2fother"`, `class="done"`, `action="/setup/remove?key=` + testKey + `"`, "data-confirm="} {
+	for _, want := range []string{testRepo, "o/other", `href="/configure?key=` + testKey + `&amp;repo=o%2fother"`, `class="done"`, ">Status</a>", `action="/setup/remove?key=` + testKey + `"`, "data-confirm="} {
 		if !strings.Contains(body, want) {
 			t.Errorf("setup lacks %s", want)
 		}
@@ -113,5 +113,26 @@ func TestSetupListsAndRemovesRepos(t *testing.T) {
 	}
 	if after, _ := os.ReadFile(filepath.Join(s.dir, "config.json")); !bytes.Equal(before, after) {
 		t.Error("removing an unknown repository changed the config")
+	}
+}
+
+// With repositories set up but nothing watched, neither Settings nor
+// Workflows offers Status: the status page would be empty.
+func TestStatusButtonNeedsAWatch(t *testing.T) {
+	s, f, _ := newTestServer(t)
+	serveRepo(f, "b.yml")
+	if err := cistatus.SaveConfig(s.dir, Config{}.AddRepo(testRepo)); err != nil {
+		t.Fatal(err)
+	}
+	for _, target := range []string{"/setup", "/configure"} {
+		if body := do(s, "GET", keyed(target), host, nil).Body.String(); strings.Contains(body, `class="done"`) {
+			t.Errorf("%s offers Status with nothing watched", target)
+		}
+	}
+	writeConfig(t, s, mainWatch)
+	for _, target := range []string{"/setup", "/configure"} {
+		if body := do(s, "GET", keyed(target), host, nil).Body.String(); !strings.Contains(body, ">Status</a>") {
+			t.Errorf("%s does not offer Status once something is watched", target)
+		}
 	}
 }

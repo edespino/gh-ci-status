@@ -167,7 +167,7 @@ document.body.setAttribute("data-result", out.join(","));
 }
 
 // TestDoneVisibleAfterScroll renders a long Configure page, scrolls to the
-// bottom in headless Chrome and checks that Done is still on screen and that
+// bottom in headless Chrome and checks that Status is still on screen and that
 // the filter bar sits below the header rather than over it.
 func TestDoneVisibleAfterScroll(t *testing.T) {
 	chrome(t)

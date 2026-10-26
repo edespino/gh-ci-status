@@ -5,3 +5,4 @@
 # Test and coverage output
 *.out
 *.test
+.DS_Store

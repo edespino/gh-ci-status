@@ -98,6 +98,7 @@ type ConfigurePage struct {
 	Items         []ConfigureItem
 	Version       string // shown in the footer
 	SkipConfirm   bool   // confirmed actions run without asking
+	AnyWatched    bool   // something is watched in some repository: Status shows
 }
 
 func renderStatus(w io.Writer, p StatusPage) error {

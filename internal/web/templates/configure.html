@@ -62,7 +62,7 @@ nav.repos a.repo.on{outline:2px solid var(--link)}
 {{if .ReadAt}}<span class="read mono" title="this page keeps what it read from GitHub until you press Refresh">read {{.ReadAt}}</span>
 <form class="inline" method="post" action="/configure/refresh?key={{.Key}}" data-busy="Reading GitHub…"><input type="hidden" name="repo" value="{{$.Repo}}"><button class="btn" type="submit">{{template "icon-refresh"}}Refresh</button></form>{{end}}
 <span id="progress-head" title="Reading statuses…"><span class="spin-sm"></span></span>
-<a class="done" href="/?key={{.Key}}" data-busy="Reading GitHub…" title="back to the status page">Done</a>
+{{if .AnyWatched}}<a class="done" href="/?key={{.Key}}" data-busy="Reading GitHub…" title="the status page">Status</a>{{end}}
 </header>
 <nav class="repos">Repository:
 {{range .Repos}}<a class="repo{{if eq . $.Repo}} on{{end}}" href="/configure?key={{$.Key}}&amp;repo={{.}}" data-busy="Loading Workflows…">{{.}}</a>

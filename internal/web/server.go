@@ -286,6 +286,17 @@ func (s *Server) sendSlack(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, s.withKey("/"), http.StatusSeeOther)
 }
 
+// anyWatched is whether cfg watches anything in any repository; until it
+// does, the status page has nothing to show.
+func anyWatched(cfg cistatus.Config) bool {
+	for _, rc := range cfg.Repos {
+		if len(rc.Watch) > 0 {
+			return true
+		}
+	}
+	return false
+}
+
 // takeSent returns the page Send to Slack kept, once, if it is under a
 // minute old.
 func (s *Server) takeSent() (StatusPage, int, bool) {
@@ -314,7 +325,7 @@ func (s *Server) configureForm(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf("%q is not set up; add it on the Settings page", repo), http.StatusNotFound)
 		return
 	}
-	p := ConfigurePage{Repo: repo, Repos: cfg.RepoNames(), Key: s.key, Version: s.version, SkipConfirm: s.skipConfirm()}
+	p := ConfigurePage{Repo: repo, Repos: cfg.RepoNames(), Key: s.key, Version: s.version, SkipConfirm: s.skipConfirm(), AnyWatched: anyWatched(cfg)}
 	k := s.keptFor(repo)
 	l := k.listing()
 	if l == nil {
