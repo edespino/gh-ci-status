@@ -195,13 +195,13 @@ func TestSlackMessage(t *testing.T) {
 	for _, want := range []string{
 		"*Failing (3)*\n🔴 *<" + hist("n.yml", "main") + "|Never>* on main · failing for 23 days · <" + runsURL + "5|#5>\nnever passed on main · 3 failed runs\n" +
 			"🔴 *<" + hist("b.yml", "main") + "|Build>* on main · failing for 10 days · <" + runsURL + "120|#20>\n" +
-			"failed at <https://github.com/x/job/9|Compile (build)> · 2 failed runs since the last passing run <" + runsURL + "118|#18> (Oct 10) · running <" + runsURL + "121|#21>\n" +
+			"failed at <https://github.com/x/job/9|Compile (build)> · 2 failed runs since the last passing run <" + runsURL + "118|#18> (Oct 10) · 🔄 running <" + runsURL + "121|#21>\n" +
 			"🔴 *<" + hist("o.yml", "main") + "|A &lt;b&gt; &amp; c>* on main · failing for 1 day · <" + runsURL + "7|#7>\nno passing run in the last 1 main run",
 		"*Unreadable (1)*\n⚪ <" + hist("gone.yml", "dev") + "|gone.yml> on dev: GET /x: 404 Not Found",
-		"*Other (3)*\n🟡 <" + hist("f.yml", "main") + "|First> on main: waiting <" + runsURL + "1|#1>\n" +
+		"*Other (3)*\n🕒 <" + hist("f.yml", "main") + "|First> on main: waiting <" + runsURL + "1|#1>\n" +
 			"⚪ <" + hist("c.yml", "main") + "|Cancelled> on main: cancelled <" + runsURL + "50|#5>\n" +
 			"⚪ <" + hist("e.yml", "dev") + "|Never ran> on dev: no runs yet",
-		"*Passing (2)*\n🟢 <" + hist("l.yml", "main") + "|Lint> · 🟡 waiting <" + runsURL + "61|#7>\n🟢 <" + hist("d.yml", "main") + "|Docs>",
+		"*Passing (2)*\n🟢 <" + hist("l.yml", "main") + "|Lint> · 🕒 waiting <" + runsURL + "61|#7>\n🟢 <" + hist("d.yml", "main") + "|Docs>",
 		"*Disabled (1)*\n⚪ <" + hist("old.yml", "main") + "|Old>",
 		"Oct 24, 5:00 AM PDT · gh-ci-status v0.4.0",
 	} {
@@ -211,6 +211,9 @@ func TestSlackMessage(t *testing.T) {
 	}
 	if strings.Contains(all, "<b>") {
 		t.Error("a name was not escaped")
+	}
+	if strings.Contains(all, "🟡") {
+		t.Error("runs in progress are marked 🔄 running or 🕒 waiting, as on GitHub")
 	}
 	if last := m.Blocks[len(m.Blocks)-1]; last.Type != "context" {
 		t.Errorf("last block is %s, want context", last.Type)

@@ -128,7 +128,8 @@ a gh-ci-status with `/shutdown`, is reported and left running.
 a context line with the repositories, one section per group (failing, unreadable, other,
 passing, disabled) holding its heading and a line per workflow, and a context line with the
 time and version. It does not repeat the app's name, which Slack shows above the message.
-Each line starts with a mark (🔴 failing, 🟢 passing, 🟡 running or waiting, ⚪ the rest). A
+Each line starts with a mark (🔴 failing, 🟢 passing, ⚪ the rest); a run in progress is
+marked 🔄 running or 🕒 waiting. A
 group longer than one section (3000 characters) continues in the next; within Slack's 50
 blocks every group after it keeps at least one section, and what does not fit ends in
 "and N more". Text from GitHub has `&`, `<` and `>` escaped. It uses sections rather than

@@ -119,12 +119,15 @@ type slackBlock struct {
 
 var slackEscape = strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;")
 
-// The marks in front of each workflow, coloured like the status page's stripes.
+// The marks in front of each workflow, coloured like the status page's
+// stripes, and for a run in progress the nearest built-in emoji to GitHub's
+// icons: arrows in a circle while it runs, a clock while it waits.
 const (
-	markFailing  = "🔴"
-	markPassing  = "🟢"
-	markProgress = "🟡" // running or waiting
-	markOther    = "⚪"
+	markFailing = "🔴"
+	markPassing = "🟢"
+	markRunning = "🔄"
+	markWaiting = "🕒"
+	markOther   = "⚪"
 )
 
 // SlackMessage is the Slack message (an incoming webhook's JSON) for rep: the
@@ -142,11 +145,17 @@ func SlackMessage(rep Report, loc *time.Location) ([]byte, error) {
 		}
 		return s
 	}
-	inProgress := func(r ReportRow) string {
+	// inProgress is the run in progress, if any: its mark (🔄 running, 🕒
+	// waiting) and "running #N" or "waiting #N".
+	inProgress := func(r ReportRow) (mark, text string) {
 		if r.InProgress == nil {
-			return ""
+			return "", ""
 		}
-		return progress(r.InProgress.Status) + " " + link(r.InProgress.URL, r.InProgress.Number)
+		mark = markRunning
+		if waiting(r.InProgress.Status) {
+			mark = markWaiting
+		}
+		return mark, progress(r.InProgress.Status) + " " + link(r.InProgress.URL, r.InProgress.Number)
 	}
 	on := func(r ReportRow) string { return " on " + slackEscape.Replace(r.Branch) }
 
@@ -171,29 +180,30 @@ func SlackMessage(rep Report, loc *time.Location) ([]byte, error) {
 			default:
 				more = append(more, "no passing run in the last "+plural(r.FailedRuns, slackEscape.Replace(r.Branch)+" run"))
 			}
-			if s := inProgress(r); s != "" {
-				more = append(more, s)
+			if mark, text := inProgress(r); text != "" {
+				more = append(more, mark+" "+text)
 			}
 			failing = append(failing, s+"\n"+strings.Join(more, " · "))
 		case Error:
 			unreadable = append(unreadable, markOther+" "+name(r)+on(r)+": "+slackEscape.Replace(cut(r.Error, 300)))
 		case Running:
-			other = append(other, markProgress+" "+name(r)+on(r)+": "+inProgress(r))
+			mark, text := inProgress(r)
+			other = append(other, mark+" "+name(r)+on(r)+": "+text)
 		case Other:
 			s := markOther + " " + name(r) + on(r) + ": " + slackEscape.Replace(r.Conclusion)
 			if r.Latest != nil {
 				s += " " + link(r.Latest.URL, r.Latest.Number)
 			}
-			if p := inProgress(r); p != "" {
-				s += " · " + markProgress + " " + p
+			if mark, text := inProgress(r); text != "" {
+				s += " · " + mark + " " + text
 			}
 			other = append(other, s)
 		case None:
 			other = append(other, markOther+" "+name(r)+on(r)+": no runs yet")
 		case Passing:
 			s := markPassing + " " + name(r)
-			if p := inProgress(r); p != "" {
-				s += " · " + markProgress + " " + p
+			if mark, text := inProgress(r); text != "" {
+				s += " · " + mark + " " + text
 			}
 			passing = append(passing, s)
 		case Disabled:

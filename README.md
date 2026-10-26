@@ -123,7 +123,8 @@ The status page can post the status to one Slack channel, when you press **Send 
 
 The message has the summary as its heading and the repository under it, then a block per
 group (Failing, Unreadable, Other, Passing, Disabled) with one line per workflow, marked 🔴
-failing, 🟢 passing, 🟡 running or waiting and ⚪ the rest. A failing line adds its failed step,
+failing, 🟢 passing and ⚪ the rest; a run in progress is 🔄 running or 🕒 waiting, the nearest
+built-in emoji to GitHub's icons. A failing line adds its failed step,
 the runs since the last passing one and any run in progress. Links go to GitHub; the page's
 own address is never sent. The webhook address is a secret: it is kept in `slack.json`, readable
 only by you, never shown again, logged or sent anywhere but Slack. **Remove** on Settings forgets
