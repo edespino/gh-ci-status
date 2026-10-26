@@ -206,7 +206,7 @@ methods to add and remove repositories and watches.
 
 ## Development
 
-You need Go 1.23 or newer and the GitHub CLI.
+You need Go 1.27 or newer and the GitHub CLI.
 
 ```shell
 git clone https://github.com/edespino/gh-ci-status.git
@@ -222,10 +222,11 @@ The standard library is the only dependency. Tests use a fake GitHub API
 at `$CHROME_PATH`, or as the macOS application, and are skipped when there is none.
 [CONTRIBUTING.md](CONTRIBUTING.md) has the conventions.
 
-Releases: pushing a tag such as `v1.0.0` runs `.github/workflows/release.yml`, which builds the
-binaries for each platform, attaches them to a GitHub release with build attestations, and makes
-the new version installable with `gh extension install`. A tag with a `-` (such as `v1.0.0-rc.1`)
-makes a prerelease.
+Versions follow Semantic Versioning (`v0.1.0`); `gh ci-status --version`, the footer of every
+page and the JSON report's `version` show which one is running. Pushing a tag such as `v0.1.0`
+runs `.github/workflows/release.yml`, which builds the binaries for each platform, attaches them
+to a GitHub release with build attestations, and makes the new version installable with
+`gh extension install`. [CONTRIBUTING.md](CONTRIBUTING.md#versions-and-releases) has the details.
 
 ## Roadmap
 

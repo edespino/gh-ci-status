@@ -11,7 +11,7 @@ only.
 ## Making a change
 
 1. Build and test: `make check` runs gofmt, `go vet` and the tests with the race detector, the
-   same as CI. Go 1.23 or newer is needed.
+   same as CI. Go 1.27 or newer is needed.
 2. Write a test that fails without your change, then make it pass. Tests use the fake GitHub API
    in `internal/fakegithub`; they never call the real GitHub.
 3. The browser tests need Chrome or Chromium. They run when one is found on `PATH`, at
@@ -24,6 +24,22 @@ only.
 
 - One topic per pull request, with a description of what changed and why.
 - CI must pass.
+
+## Versions and releases
+
+gh-ci-status follows [Semantic Versioning](https://semver.org) with a `v` prefix:
+`vMAJOR.MINOR.PATCH`.
+
+- Until `v1.0.0`, a minor release (`v0.2.0`) may change behaviour; a patch release (`v0.1.1`)
+  only fixes.
+- From `v1.0.0`, the commands, their exit codes and the JSON report's field names are stable:
+  changing or removing them needs a new major version; adding is a minor release.
+- A tag with a `-` (`v0.2.0-rc.1`) makes a prerelease.
+
+To release, tag a commit on `main` and push the tag: `git tag v0.1.0 && git push origin v0.1.0`.
+The release workflow builds the binaries with the Go version in `go.mod`, which stamps the tag
+into them, and attaches them to a GitHub release with build attestations.
+`gh ci-status --version`, the footer of every page and the JSON report's `version` then show it.
 
 ## License
 

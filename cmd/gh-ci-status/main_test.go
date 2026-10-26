@@ -182,6 +182,9 @@ func TestJSONOutput(t *testing.T) {
 	if err := json.Unmarshal([]byte(e.out.String()), &rep); err != nil {
 		t.Fatalf("not JSON: %v\n%s", err, e.out.String())
 	}
+	if rep.Version == "" {
+		t.Error("the JSON report does not name its version")
+	}
 	if len(rep.Rows) != 1 || rep.Rows[0].State != cistatus.Passing || rep.Rows[0].Latest == nil || rep.Summary != "nothing red · 1 passing" ||
 		len(rep.Repos) != 1 || rep.Repos[0] != testRepo {
 		t.Fatalf("report %+v", rep)

@@ -18,6 +18,7 @@ type SetupPage struct {
 	Repo    string          // what was typed, shown again after a failed add
 	Problem *cistatus.Check // why the add failed
 	Error   string          // for example an unreadable config file
+	Version string          // shown in the footer
 }
 
 func (s *Server) setupPage(w http.ResponseWriter, r *http.Request) {
@@ -25,7 +26,7 @@ func (s *Server) setupPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) renderSetup(w http.ResponseWriter, r *http.Request, code int, typed string, problem *cistatus.Check) {
-	p := SetupPage{Key: s.key, Repo: typed, Problem: problem}
+	p := SetupPage{Key: s.key, Repo: typed, Problem: problem, Version: s.version}
 	cfg, _, err := cistatus.LoadConfig(s.dir)
 	if err != nil {
 		p.Error = err.Error() + ". Adding a repository here replaces the file."

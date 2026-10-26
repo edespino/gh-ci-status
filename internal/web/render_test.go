@@ -388,3 +388,30 @@ func TestConfigureWatchedOnMainHasNoAddButton(t *testing.T) {
 		t.Errorf("c.yml (not watched):\n%s", c)
 	}
 }
+
+// Every page ends with the version and links to the project.
+func TestPagesHaveFooter(t *testing.T) {
+	var cfg, setup, status bytes.Buffer
+	cp := sampleConfigurePage()
+	cp.Version = "v9.9.9"
+	if err := renderConfigure(&cfg, cp); err != nil {
+		t.Fatal(err)
+	}
+	if err := renderSetup(&setup, SetupPage{Key: testKey, Version: "v9.9.9"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := renderStatus(&status, StatusPage{Repos: []string{testRepo}, Summary: "nothing watched", Version: "v9.9.9"}); err != nil {
+		t.Fatal(err)
+	}
+	for name, page := range map[string]string{"configure": cfg.String(), "setup": setup.String(), "status": status.String()} {
+		footer := regexp.MustCompile(`(?s)<footer>.*?</footer>`).FindString(page)
+		for _, want := range []string{"gh-ci-status v9.9.9", `href="https://github.com/edespino/gh-ci-status"`, `href="https://github.com/edespino/gh-ci-status/issues"`} {
+			if !strings.Contains(footer, want) {
+				t.Errorf("%s footer lacks %s: %q", name, want, footer)
+			}
+		}
+	}
+	if footer := regexp.MustCompile(`(?s)<footer>.*?</footer>`).FindString(statusHTML(t)); !strings.Contains(footer, "gh-ci-status ·") {
+		t.Errorf("without a version the footer still names the project: %q", footer)
+	}
+}

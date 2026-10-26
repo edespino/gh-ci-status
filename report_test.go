@@ -50,6 +50,20 @@ func TestReportJSON(t *testing.T) {
 	}
 }
 
+// The report names the version that wrote it when the caller sets it.
+func TestReportVersion(t *testing.T) {
+	rep := NewReport(nil, nil, testNow)
+	b, _ := json.Marshal(rep)
+	if strings.Contains(string(b), `"version"`) {
+		t.Fatalf("version without a value: %s", b)
+	}
+	rep.Version = "v0.1.0"
+	b, _ = json.Marshal(rep)
+	if !strings.Contains(string(b), `"generated":"2026-10-24T12:00:00Z","version":"v0.1.0"`) {
+		t.Fatalf("report = %s", b)
+	}
+}
+
 func TestReportEmptyListsAreArrays(t *testing.T) {
 	b, _ := json.Marshal(NewReport(nil, nil, testNow))
 	if s := string(b); !strings.Contains(s, `"repos":[]`) || !strings.Contains(s, `"rows":[]`) || !strings.Contains(s, `"summary":"nothing watched"`) {

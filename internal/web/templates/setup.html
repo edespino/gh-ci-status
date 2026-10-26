@@ -58,6 +58,7 @@ form.add input{flex:1 1 260px;padding:6px 8px;font:14px ui-monospace,Menlo,monos
 </form>
 <p class="hint">Type owner/name or paste the repository's GitHub address. gh-ci-status checks that your GitHub login can read it and that it has GitHub Actions workflows, then opens Configure so you can choose which workflows to watch.</p>
 {{with .Problem}}<p class="error" id="problem"><b>{{.Name}}:</b> {{.Detail}}{{with .Fix}}<br>{{.}}{{end}}</p>{{end}}
+{{template "footer" .}}
 {{template "busy" .}}
 </body>
 </html>

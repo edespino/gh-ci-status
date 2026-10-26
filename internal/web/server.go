@@ -26,24 +26,26 @@ import (
 type Options struct {
 	// Client returns a GitHub client; it is called for every page that reads
 	// GitHub, so a new 'gh auth login' takes effect without a restart.
-	Client func(context.Context) (*cistatus.Client, error)
-	Dir    string           // config directory (config.json)
-	Key    string           // the secret every URL must carry
-	Port   int              // the port the server listens on, for the Host check
-	Now    func() time.Time // nil: time.Now
-	Logger *log.Logger      // nil: no request log
+	Client  func(context.Context) (*cistatus.Client, error)
+	Dir     string           // config directory (config.json)
+	Key     string           // the secret every URL must carry
+	Port    int              // the port the server listens on, for the Host check
+	Now     func() time.Time // nil: time.Now
+	Logger  *log.Logger      // nil: no request log
+	Version string           // shown in every page\'s footer
 }
 
 // Server serves the pages on 127.0.0.1 to whoever holds the key. The key
 // travels in every URL (link, form action, redirect); there is no cookie,
 // because browsers send cookies to every port on 127.0.0.1.
 type Server struct {
-	client func(context.Context) (*cistatus.Client, error)
-	dir    string
-	key    string
-	port   int
-	now    func() time.Time
-	logger *log.Logger
+	client  func(context.Context) (*cistatus.Client, error)
+	dir     string
+	key     string
+	port    int
+	now     func() time.Time
+	logger  *log.Logger
+	version string
 
 	mu   sync.Mutex
 	kept map[string]*kept // per repository: what Configure read, until Refresh
@@ -54,7 +56,7 @@ func New(o Options) *Server {
 	if o.Now == nil {
 		o.Now = time.Now
 	}
-	return &Server{client: o.Client, dir: o.Dir, key: o.Key, port: o.Port, now: o.Now, logger: o.Logger}
+	return &Server{client: o.Client, dir: o.Dir, key: o.Key, port: o.Port, now: o.Now, logger: o.Logger, version: o.Version}
 }
 
 // Handler is the server's HTTP handler, with the key and Host checks.
@@ -162,7 +164,7 @@ func (s *Server) status(w http.ResponseWriter, r *http.Request) {
 	generated := localTime(s.now())
 	fail := func(code int, summary, msg string) {
 		s.page(w, code, func(out io.Writer) error {
-			return renderStatus(out, StatusPage{Summary: summary, Generated: generated, Key: s.key, Error: msg})
+			return renderStatus(out, StatusPage{Summary: summary, Generated: generated, Key: s.key, Error: msg, Version: s.version})
 		})
 	}
 	cfg, _, err := cistatus.LoadConfig(s.dir)
@@ -188,7 +190,7 @@ func (s *Server) status(w http.ResponseWriter, r *http.Request) {
 		s.keptFor(row.Repo).setRowStatus(row.Watch, rowStatus(row))
 	}
 	s.page(w, http.StatusOK, func(out io.Writer) error {
-		return renderStatus(out, StatusPage{Repos: cfg.RepoNames(), Summary: cistatus.Summary(rows), Generated: generated, Key: s.key, Rows: rows})
+		return renderStatus(out, StatusPage{Repos: cfg.RepoNames(), Summary: cistatus.Summary(rows), Generated: generated, Key: s.key, Rows: rows, Version: s.version})
 	})
 }
 
@@ -207,7 +209,7 @@ func (s *Server) configureForm(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf("%q is not set up; add it on the Setup page", repo), http.StatusNotFound)
 		return
 	}
-	p := ConfigurePage{Repo: repo, Repos: cfg.RepoNames(), Key: s.key}
+	p := ConfigurePage{Repo: repo, Repos: cfg.RepoNames(), Key: s.key, Version: s.version}
 	k := s.keptFor(repo)
 	l := k.listing()
 	if l == nil {

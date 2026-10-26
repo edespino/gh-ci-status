@@ -38,6 +38,7 @@ type StatusPage struct {
 	Error              string
 	Key                string // carried in every link and form action
 	Rows               []cistatus.Row
+	Version            string // shown in the footer
 }
 
 // MultiRepo is true when rows need their repository named.
@@ -84,6 +85,7 @@ type ConfigurePage struct {
 	ReadAt        string // when the kept GitHub data was read
 	Watching      []WatchItem
 	Items         []ConfigureItem
+	Version       string // shown in the footer
 }
 
 func renderStatus(w io.Writer, p StatusPage) error {

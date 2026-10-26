@@ -19,13 +19,13 @@ import (
 	"os/exec"
 	"os/signal"
 	"runtime"
-	"runtime/debug"
 	"strings"
 	"syscall"
 	"time"
 
 	cistatus "github.com/edespino/gh-ci-status"
 	"github.com/edespino/gh-ci-status/internal/banner"
+	"github.com/edespino/gh-ci-status/internal/version"
 	"github.com/edespino/gh-ci-status/internal/web"
 )
 
@@ -105,7 +105,8 @@ func run(ctx context.Context, args []string, d deps) int {
 		fmt.Fprint(d.stdout, usage)
 		return 0
 	case "--version", "version":
-		fmt.Fprintln(d.stdout, "gh-ci-status", version())
+		v, rev := version.Get()
+		fmt.Fprintln(d.stdout, strings.TrimSpace("gh-ci-status "+v+" "+rev))
 		return 0
 	case "serve":
 		return serve(ctx, args[1:], d)
@@ -127,7 +128,7 @@ func status(ctx context.Context, d deps, asJSON bool) int {
 	}
 	if len(cfg.Repos) == 0 {
 		if asJSON {
-			writeJSON(d.stdout, cistatus.NewReport(nil, nil, d.now()))
+			writeJSON(d.stdout, report(nil, nil, d.now()))
 		}
 		fmt.Fprintln(d.stderr, notSetUp)
 		return 2
@@ -144,7 +145,7 @@ func status(ctx context.Context, d deps, asJSON bool) int {
 	}
 	rows = cistatus.SortRows(rows)
 	if asJSON {
-		writeJSON(d.stdout, cistatus.NewReport(cfg.RepoNames(), rows, d.now()))
+		writeJSON(d.stdout, report(cfg.RepoNames(), rows, d.now()))
 	} else {
 		writeText(d.stdout, rows, len(cfg.Repos) > 1)
 	}
@@ -157,6 +158,13 @@ func status(ctx context.Context, d deps, asJSON bool) int {
 		}
 	}
 	return 0
+}
+
+// report is the JSON report, naming this version.
+func report(repos []string, rows []cistatus.Row, now time.Time) cistatus.Report {
+	rep := cistatus.NewReport(repos, rows, now)
+	rep.Version, _ = version.Get()
+	return rep
 }
 
 func writeJSON(w io.Writer, v any) {
@@ -289,7 +297,7 @@ func serve(ctx context.Context, args []string, d deps) int {
 			}
 			return cistatus.NewClient(t, d.baseURL), nil
 		},
-		Dir: d.dir, Key: key, Port: actual, Now: d.now,
+		Dir: d.dir, Key: key, Port: actual, Now: d.now, Version: func() string { v, _ := version.Get(); return v }(),
 		Logger: log.New(d.stderr, "gh-ci-status: ", log.LstdFlags),
 	})
 	srv := &http.Server{Handler: s.Handler(), ReadHeaderTimeout: 10 * time.Second}
@@ -318,22 +326,6 @@ func serve(ctx context.Context, args []string, d deps) int {
 	defer cancel()
 	_ = srv.Shutdown(shutdownCtx)
 	return 0
-}
-
-// version is the module version (set by 'go install module@version') and the
-// commit it was built from, when known.
-func version() string {
-	info, ok := debug.ReadBuildInfo()
-	if !ok {
-		return "(unknown)"
-	}
-	v := info.Main.Version
-	for _, s := range info.Settings {
-		if s.Key == "vcs.revision" && len(s.Value) >= 12 {
-			v += " " + s.Value[:12]
-		}
-	}
-	return v
 }
 
 func openBrowser(u string) error {

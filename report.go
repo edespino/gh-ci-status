@@ -8,6 +8,7 @@ import "time"
 // what an MCP tool returns. Field names are stable; new fields may be added.
 type Report struct {
 	Generated time.Time   `json:"generated"`
+	Version   string      `json:"version,omitempty"` // the program that wrote it, set by the caller
 	Summary   string      `json:"summary"`
 	Repos     []string    `json:"repos"`
 	Rows      []ReportRow `json:"rows"`
