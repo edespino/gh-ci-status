@@ -6,8 +6,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>gh-ci-status</title>
 <style>
-:root{--bg:#fafafa;--fg:#18181b;--muted:#71717a;--row:#fff;--bad:#dc2626;--badbg:#fef2f2;--ok:#16a34a;--run:#ca8a04;--other:#a1a1aa;--link:#1d4ed8;--btn:#e4e4e7}
-@media (prefers-color-scheme: dark){:root{--bg:#18181b;--fg:#e4e4e7;--muted:#a1a1aa;--row:#27272a;--badbg:#3f1d1d;--link:#93c5fd;--btn:#3f3f46}}
+:root{--bg:#fafafa;--fg:#18181b;--muted:#71717a;--row:#fff;--bad:#dc2626;--badbg:#fef2f2;--ok:#16a34a;--okbg:#f0fdf4;--run:#ca8a04;--other:#a1a1aa;--link:#1d4ed8;--btn:#e4e4e7}
+@media (prefers-color-scheme: dark){:root{--bg:#18181b;--fg:#e4e4e7;--muted:#a1a1aa;--row:#27272a;--badbg:#3f1d1d;--okbg:#14321f;--link:#93c5fd;--btn:#3f3f46}}
 [hidden]{display:none!important} /* rows set display:grid, which would otherwise override hidden */
 body{background:var(--bg);color:var(--fg);font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;margin:24px auto;max-width:1100px;padding:0 16px}
 header{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;margin-bottom:12px}
@@ -27,6 +27,7 @@ button.btn,.btn{display:inline-flex;align-items:center;gap:6px;background:var(--
 .n small{display:block;color:var(--muted);font:12px ui-monospace,Menlo,monospace}
 .d{color:var(--muted)}.in-progress,.in-progress a{color:var(--run)}.age{color:var(--bad)}.bad .s{color:var(--bad);font-weight:600}.ok .s{color:var(--ok)}.run .s{color:var(--run)}
 .error{background:var(--badbg);border-left:8px solid var(--bad);padding:8px 12px;border-radius:4px}
+.notice{background:var(--okbg);border-left:8px solid var(--ok);padding:8px 12px;border-radius:4px}.notice.bad{background:var(--badbg);border-left-color:var(--bad)}
 .tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:4px 0 10px}
 input[type=search]{flex:1 1 240px;padding:5px 8px;font:inherit}
 .seg{display:inline-flex;flex-wrap:wrap;gap:2px}.seg button.on{outline:2px solid var(--link)}
@@ -40,10 +41,12 @@ a{color:var(--link)}.gap{height:12px}
 <p class="sub">{{with .RepoList}}{{.}} · {{end}}{{.Summary}} · generated {{.Generated}}</p>
 <div class="actions">
 <form method="post" action="/refresh?key={{.Key}}" data-busy="Refreshing from GitHub…"><button class="btn" type="submit">{{template "icon-refresh"}}Refresh</button></form>
-<a class="btn" href="/configure?key={{.Key}}" data-busy="Loading Configure…" title="choose what to watch">{{template "icon-gear"}}Configure</a>
+{{with .Slack}}<form method="post" action="/slack/send?key={{$.Key}}" data-busy="Reading GitHub and sending to Slack…" data-confirm="Send the status to {{.}}?"><button class="btn" type="submit" title="read GitHub again and post the status to {{.}}">{{template "icon-send"}}Send to Slack</button></form>
+{{end}}<a class="btn" href="/configure?key={{.Key}}" data-busy="Loading Configure…" title="choose what to watch">{{template "icon-gear"}}Configure</a>
 </div>
 </header>
 {{if .Error}}<p class="error">{{.Error}}</p>{{end}}
+{{with .Notice}}<p class="notice{{if $.NoticeBad}} bad{{end}}" id="notice">{{.}}</p>{{end}}
 {{if .Rows}}<div class="tools">
 <input type="search" id="filter" placeholder="filter by name, file, branch" aria-label="filter the rows">
 <span class="seg"><button type="button" data-filter="all" class="on">All {{len .Rows}}</button>{{range .Filters}}<button type="button" data-filter="{{.State}}">{{.Label}} {{.Count}}</button>{{end}}</span>

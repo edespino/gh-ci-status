@@ -24,11 +24,16 @@ form.inline{display:inline;margin:0}
 .check.ok{border-left-color:var(--ok);background:var(--okbg)}
 .fix{color:var(--fg)}
 .repo-item{display:flex;align-items:center;gap:14px;background:var(--row);border-radius:4px;padding:6px 10px;margin:4px 0}
-.repo-item .mono{flex:1 1 auto}
+.repo-item .mono,.repo-item .grow{flex:1 1 auto}
 form.add{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:14px}
 form.add label{font-weight:600}
 form.add input{flex:1 1 260px;padding:6px 8px;font:14px ui-monospace,Menlo,monospace}
 .hint{color:var(--muted);margin:6px 0 0}
+form.slack{display:grid;grid-template-columns:max-content 1fr;gap:8px 10px;align-items:center;margin-top:8px}
+form.slack label{font-weight:600}
+form.slack input{padding:6px 8px;font:14px ui-monospace,Menlo,monospace}
+form.slack button{grid-column:2;justify-self:start}
+@media (max-width:520px){form.slack{grid-template-columns:1fr}form.slack button{grid-column:1}}
 .error{background:var(--badbg);border-left:8px solid var(--bad);padding:8px 12px;border-radius:4px}
 </style>
 </head>
@@ -58,6 +63,20 @@ form.add input{flex:1 1 260px;padding:6px 8px;font:14px ui-monospace,Menlo,monos
 </form>
 <p class="hint">Type owner/name or paste the repository's GitHub address. gh-ci-status checks that your GitHub login can read it and that it has GitHub Actions workflows, then opens Configure so you can choose which workflows to watch.</p>
 {{with .Problem}}<p class="error" id="problem"><b>{{.Name}}:</b> {{.Detail}}{{with .Fix}}<br>{{.}}{{end}}</p>{{end}}
+
+<h2>Slack</h2>
+{{if .Slack}}<div class="repo-item"><span class="grow">Send to Slack posts to <b>{{.Slack}}</b>.</span>
+<form class="inline" method="post" action="/slack/remove?key={{.Key}}" data-busy="Saving…" data-confirm="Forget the Slack webhook? The Send to Slack button goes away until you add one again."><button type="submit">Remove</button></form>
+</div>
+{{else}}<form class="slack" method="post" action="/slack/save?key={{.Key}}" data-busy="Saving…">
+<label for="webhook">Incoming webhook</label>
+<input id="webhook" name="webhook" type="password" placeholder="https://hooks.slack.com/services/…" required spellcheck="false" autocomplete="off">
+<label for="label">Shown as</label>
+<input id="label" name="label" type="text" placeholder="#ci-status" value="{{.SlackLabel}}" maxlength="80" spellcheck="false" autocomplete="off">
+<button type="submit" class="primary">Save</button>
+</form>
+<p class="hint">Optional. With a webhook, the status page has a <b>Send to Slack</b> button that posts the status to that channel. To make one, open <a href="https://api.slack.com/apps" rel="noreferrer">https://api.slack.com/apps</a>, create an app (or open one), choose <b>Incoming Webhooks</b>, turn on <b>Activate Incoming Webhooks</b>, press <b>Add New Webhook to Workspace</b>, pick the channel and copy the address. It is kept in slack.json in the settings folder, readable only by you, and is not shown again.</p>
+{{end}}{{with .SlackProblem}}<p class="error" id="slack-problem">{{.}}</p>{{end}}
 {{template "footer" .}}
 {{template "busy" .}}
 </body>

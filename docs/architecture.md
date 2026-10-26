@@ -70,6 +70,7 @@ row with a run in progress, whatever its state.
 | Setup page | The signed-in account (`/user`). |
 | Adding a repository | The repository and its workflow list. |
 | `check` | The signed-in account, then per repository the repository and its workflow list. |
+| Send to Slack | The same as the status page, then one post to the Slack webhook. The status page that follows shows what was sent instead of reading again (once, within a minute). |
 
 Every request carries the token from `gh auth token`, read again for each page so that a new
 `gh auth login` takes effect without a restart. Requests time out after 15 seconds. Errors name
@@ -89,6 +90,11 @@ the path and status, never the token.
 - The log records method, path and status, never the query.
 - `POST /shutdown` ends the server. Like every route it needs the key, so only `gh ci-status
   stop`, which reads the key from `key`, or something else that has the key can stop it.
+- `POST /slack/save`, `/slack/remove` and `/slack/send` set, forget and use the Slack webhook.
+  Only `https://hooks.slack.com/services/...` (or GovSlack's `hooks.slack-gov.com`) addresses
+  are accepted, so the server posts nowhere else; the address is kept in `slack.json` (mode
+  `0600`, refused when others can read it), never rendered or logged, and errors carry Slack's
+  answer without it. Posts do not follow redirects.
 - Form and query input is checked before use: repository names (`owner/name` in GitHub's
   characters), workflow file names and branch names. `/api/row` and every change only act on
   repositories that are set up.
@@ -114,6 +120,15 @@ it, or, when the new one ends first, prints what it wrote and exits with code 1.
 `stop` posts to `/shutdown` on the port and waits for the port to close. When nothing listens
 there it says so and exits with code 0; a server that refuses the key, or a program that is not
 a gh-ci-status with `/shutdown`, is reported and left running.
+
+## Slack message
+
+`SlackMessage` turns the JSON report into Slack's Block Kit: a section with the summary, a
+section per red row (up to 40, then one "and N more red" section), sections listing unreadable,
+other, passing and disabled rows, and a context line with the time and version. It keeps to
+Slack's limits of 50 blocks a message and 3000 characters a section, cutting long lists with
+"and N more", and escapes `&`, `<` and `>` in text from GitHub. It uses sections rather than
+Slack's coloured attachments, which Slack calls legacy and folds after five lines.
 
 ## Planned: MCP server
 

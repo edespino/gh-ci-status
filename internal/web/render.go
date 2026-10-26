@@ -39,6 +39,9 @@ type StatusPage struct {
 	Key                string // carried in every link and form action
 	Rows               []cistatus.Row
 	Version            string // shown in the footer
+	Slack              string // where Send to Slack posts; "" hides the button
+	Notice             string // the outcome of Send to Slack
+	NoticeBad          bool
 }
 
 // MultiRepo is true when rows need their repository named.

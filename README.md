@@ -15,7 +15,7 @@ You choose workflow and branch pairs in one or more repositories. gh-ci-status s
 current state as a local web page, as text in the terminal, or as JSON for scripts and tools.
 Reds come first, oldest at the top, each with how long it has been red, the step it fails at,
 and the last green run. It reads GitHub only when you ask, with your own GitHub CLI login,
-and keeps everything on your computer.
+and keeps everything on your computer. A button can post the status to a Slack channel.
 
 ## What you see
 
@@ -99,6 +99,25 @@ gh extension remove ci-status      # uninstall
 Removing the extension keeps your settings in `~/.config/gh-ci-status`; delete that folder to
 remove them too. To build it from source instead, see [Development](#development).
 
+## Send to Slack
+
+The status page can post the status to one Slack channel, when you press **Send to Slack**.
+
+1. In Slack, open <https://api.slack.com/apps>, create an app (or open one), choose
+   **Incoming Webhooks**, turn on **Activate Incoming Webhooks**, press **Add New Webhook to
+   Workspace**, pick the channel and copy the address
+   (`https://hooks.slack.com/services/...`).
+2. On the **Setup** page, paste it under **Slack**, with the name to show for it (for example
+   `#ci-status`), and press **Save**.
+3. The status page now has **Send to Slack**. It asks first, reads GitHub again, posts the
+   result and shows what it sent, with "Sent to #ci-status." or Slack's answer if it refused.
+
+The message has the summary, each red row with its failed step, the runs since the last green
+one and any run in progress, then the other rows in short lists. Links go to GitHub; the page's
+own address is never sent. The webhook address is a secret: it is kept in `slack.json`, readable
+only by you, never shown again, logged or sent anywhere but Slack. **Remove** on Setup forgets
+it.
+
 ## Commands
 
 | Command | What it does |
@@ -169,7 +188,8 @@ flowchart LR
 
 - **On demand, read only.** The status page reads GitHub when you open or refresh it. The
   terminal commands read it when you run them. Nothing polls in the background, and nothing
-  is ever written to GitHub.
+  is ever written to GitHub. The only thing gh-ci-status sends anywhere is the Slack message,
+  when you press Send to Slack.
 - **Which run counts.** A row is decided by the newest finished run of the workflow whose branch
   is the watched branch and whose repository is the watched repository, so a run in progress
   never hides a red one. Runs from forks and `pull_request` runs are ignored: they test someone
@@ -193,6 +213,9 @@ makes, and the design decisions.
   nothing from other sites.
 - The GitHub token stays with the GitHub CLI. gh-ci-status asks `gh auth token` when it needs to
   read GitHub, keeps the token in memory, and never logs or prints it.
+- The Slack webhook is accepted only as a `https://hooks.slack.com/services/...` address, kept
+  in `slack.json` (readable only by you), never shown or logged, and posted to only when you
+  press Send to Slack. Errors give Slack's answer, never the address.
 
 If someone else gets your address, start with `gh ci-status serve --new-key`. See
 [SECURITY.md](SECURITY.md) to report a problem.
@@ -204,6 +227,7 @@ If someone else gets your address, start with `gh ci-status serve --new-key`. Se
 | `~/.config/gh-ci-status/config.json` | The repositories and the workflow and branch pairs you watch. |
 | `~/.config/gh-ci-status/key` | The key in your bookmarked address. |
 | `~/.config/gh-ci-status/serve.log` | What a background server (`serve --daemon`) prints, address included. |
+| `~/.config/gh-ci-status/slack.json` | The Slack webhook for Send to Slack and its name, when you set one. |
 
 `$XDG_CONFIG_HOME/gh-ci-status/` is used instead when `XDG_CONFIG_HOME` is set. These files are
 created with mode `0600` in a `0700` directory. There are no built-in defaults: a new user
@@ -275,6 +299,8 @@ to a GitHub release with build attestations, and makes the new version installab
 
 - An MCP server, so AI assistants can read the same status (the `cistatus` library and the JSON
   report are its base).
+- Sending to Slack from the terminal (`gh ci-status slack`), for scheduled posts, with the same
+  message.
 - A theme choice on the pages: system, light and dark.
 
 ## License

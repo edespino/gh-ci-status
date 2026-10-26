@@ -5,6 +5,7 @@ package web
 import (
 	"io"
 	"net/http"
+	"strings"
 
 	cistatus "github.com/edespino/gh-ci-status"
 )
@@ -19,14 +20,26 @@ type SetupPage struct {
 	Problem *cistatus.Check // why the add failed
 	Error   string          // for example an unreadable config file
 	Version string          // shown in the footer
+	// Slack is where Send to Slack posts, "" when no webhook is set; the
+	// webhook itself is never shown.
+	Slack        string
+	SlackLabel   string // what was typed, shown again after a failed save
+	SlackProblem string
 }
 
 func (s *Server) setupPage(w http.ResponseWriter, r *http.Request) {
-	s.renderSetup(w, r, http.StatusOK, "", nil)
+	s.renderSetup(w, r, http.StatusOK, SetupPage{})
 }
 
-func (s *Server) renderSetup(w http.ResponseWriter, r *http.Request, code int, typed string, problem *cistatus.Check) {
-	p := SetupPage{Key: s.key, Repo: typed, Problem: problem, Version: s.version}
+// renderSetup fills p with the login check, the repositories and the Slack
+// setting, and renders it.
+func (s *Server) renderSetup(w http.ResponseWriter, r *http.Request, code int, p SetupPage) {
+	p.Key, p.Version = s.key, s.version
+	if st, set, err := cistatus.LoadSlack(s.dir); err != nil {
+		p.SlackProblem = err.Error()
+	} else if set {
+		p.Slack = st.Label
+	}
 	cfg, _, err := cistatus.LoadConfig(s.dir)
 	if err != nil {
 		p.Error = err.Error() + ". Adding a repository here replaces the file."
@@ -51,13 +64,13 @@ func (s *Server) addRepo(w http.ResponseWriter, r *http.Request) {
 	typed := r.PostForm.Get("repo")
 	client, err := s.client(r.Context())
 	if err != nil {
-		s.renderSetup(w, r, http.StatusBadGateway, typed,
-			&cistatus.Check{Name: "GitHub login", Detail: err.Error(), Fix: "Run 'gh auth login', then try again"})
+		s.renderSetup(w, r, http.StatusBadGateway, SetupPage{Repo: typed,
+			Problem: &cistatus.Check{Name: "GitHub login", Detail: err.Error(), Fix: "Run 'gh auth login', then try again"}})
 		return
 	}
 	check, name := cistatus.CheckRepo(r.Context(), client, cistatus.ParseRepo(typed))
 	if !check.OK {
-		s.renderSetup(w, r, http.StatusBadRequest, typed, &check)
+		s.renderSetup(w, r, http.StatusBadRequest, SetupPage{Repo: typed, Problem: &check})
 		return
 	}
 	cfg, _, err := cistatus.LoadConfig(s.dir)
@@ -95,5 +108,31 @@ func (s *Server) removeRepo(w http.ResponseWriter, r *http.Request) {
 	s.mu.Lock()
 	delete(s.kept, repo)
 	s.mu.Unlock()
+	http.Redirect(w, r, s.withKey("/setup"), http.StatusSeeOther)
+}
+
+// saveSlack checks and saves the Slack webhook. A refused address is not
+// shown again: the page keeps only the typed name.
+func (s *Server) saveSlack(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad form: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+	label := r.PostForm.Get("label")
+	settings := cistatus.SlackSettings{Webhook: strings.TrimSpace(r.PostForm.Get("webhook")), Label: label}
+	if err := cistatus.SaveSlack(s.dir, settings); err != nil {
+		s.renderSetup(w, r, http.StatusBadRequest, SetupPage{SlackLabel: label, SlackProblem: err.Error()})
+		return
+	}
+	http.Redirect(w, r, s.withKey("/setup"), http.StatusSeeOther)
+}
+
+// removeSlack forgets the Slack webhook.
+func (s *Server) removeSlack(w http.ResponseWriter, r *http.Request) {
+	if err := cistatus.RemoveSlack(s.dir); err != nil {
+		http.Error(w, "removing failed: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
 	http.Redirect(w, r, s.withKey("/setup"), http.StatusSeeOther)
 }

@@ -32,7 +32,9 @@ Try changes against a scratch configuration so a real one is not touched:
 - Every Go file starts with `// SPDX-License-Identifier: Apache-2.0`.
 - Write the failing test first, watch it fail, then make it pass. Run `make check` before
   committing.
-- Read-only toward GitHub. Never print or log the token or the page key; tests check this.
+- Read-only toward GitHub. Never print or log the token, the page key or the Slack webhook;
+  tests check this. The only write anywhere is the Slack post when the user presses Send to
+  Slack, and only to a `hooks.slack.com/services/` address.
 - Keep the web server's guarantees: `127.0.0.1` only, Host check, key in every URL, no cookie,
   CSP without remote sources. New routes go behind `guard`; new forms carry the key in their
   action and a `repo` hidden input when they act on a repository.

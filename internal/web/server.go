@@ -36,6 +36,9 @@ type Options struct {
 	// Stop is called by POST /shutdown (gh ci-status stop) to end the program;
 	// nil turns the route off.
 	Stop func()
+	// SlackHTTP posts to the Slack webhook; nil: a client with a 15-second
+	// timeout.
+	SlackHTTP *http.Client
 }
 
 // Server serves the pages on 127.0.0.1 to whoever holds the key. The key
@@ -51,8 +54,20 @@ type Server struct {
 	version string
 	stop    func()
 
+	slackHTTP *http.Client
+
 	mu   sync.Mutex
 	kept map[string]*kept // per repository: what Configure read, until Refresh
+	sent *sentPage        // what Send to Slack read and sent, shown once
+}
+
+// sentPage is the status page Send to Slack read and sent. The next status
+// page shows it, with a note, instead of reading GitHub again, so the page
+// matches the message; after a minute it is dropped.
+type sentPage struct {
+	at   time.Time
+	page StatusPage
+	code int
 }
 
 // New returns a Server for o.
@@ -60,7 +75,11 @@ func New(o Options) *Server {
 	if o.Now == nil {
 		o.Now = time.Now
 	}
-	return &Server{client: o.Client, dir: o.Dir, key: o.Key, port: o.Port, now: o.Now, logger: o.Logger, version: o.Version, stop: o.Stop}
+	if o.SlackHTTP == nil {
+		o.SlackHTTP = &http.Client{Timeout: 15 * time.Second}
+	}
+	return &Server{client: o.Client, dir: o.Dir, key: o.Key, port: o.Port, now: o.Now, logger: o.Logger, version: o.Version, stop: o.Stop,
+		slackHTTP: o.SlackHTTP}
 }
 
 // Handler is the server's HTTP handler, with the key and Host checks.
@@ -82,6 +101,9 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /unwatch-workflow", s.unwatchWorkflow)
 	mux.HandleFunc("POST /unwatch-all", s.unwatchAll)
 	mux.HandleFunc("POST /shutdown", s.shutdown)
+	mux.HandleFunc("POST /slack/save", s.saveSlack)
+	mux.HandleFunc("POST /slack/remove", s.removeSlack)
+	mux.HandleFunc("POST /slack/send", s.sendSlack)
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		_, _ = io.WriteString(w, "ok")
@@ -178,26 +200,38 @@ func (s *Server) keptFor(repo string) *kept {
 }
 
 func (s *Server) status(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	generated := localTime(s.now())
-	fail := func(code int, summary, msg string) {
-		s.page(w, code, func(out io.Writer) error {
-			return renderStatus(out, StatusPage{Summary: summary, Generated: generated, Key: s.key, Error: msg, Version: s.version})
-		})
+	p, code, ok := s.takeSent()
+	if !ok {
+		var setup bool
+		if p, code, setup = s.readStatus(r.Context()); setup {
+			http.Redirect(w, r, s.withKey("/setup"), http.StatusSeeOther)
+			return
+		}
+		if st, set, err := cistatus.LoadSlack(s.dir); err != nil {
+			p.Notice, p.NoticeBad = "Slack settings: "+err.Error(), true
+		} else if set {
+			p.Slack = st.Label
+		}
 	}
+	s.page(w, code, func(out io.Writer) error { return renderStatus(out, p) })
+}
+
+// readStatus reads GitHub for everything watched; setup is true when nothing
+// is set up yet, and the user belongs on Setup.
+func (s *Server) readStatus(ctx context.Context) (p StatusPage, code int, setup bool) {
+	p = StatusPage{Generated: localTime(s.now()), Key: s.key, Version: s.version}
 	cfg, _, err := cistatus.LoadConfig(s.dir)
 	if err != nil {
-		fail(http.StatusInternalServerError, "configuration unreadable", err.Error()+". Open Setup and add a repository to replace it.")
-		return
+		p.Summary, p.Error = "configuration unreadable", err.Error()+". Open Setup and add a repository to replace it."
+		return p, http.StatusInternalServerError, false
 	}
 	if len(cfg.Repos) == 0 {
-		http.Redirect(w, r, s.withKey("/setup"), http.StatusSeeOther)
-		return
+		return p, 0, true
 	}
 	client, err := s.client(ctx)
 	if err != nil {
-		fail(http.StatusBadGateway, "cannot read GitHub", err.Error())
-		return
+		p.Summary, p.Error = "cannot read GitHub", err.Error()
+		return p, http.StatusBadGateway, false
 	}
 	var rows []cistatus.Row
 	for _, rc := range cfg.Repos {
@@ -207,9 +241,60 @@ func (s *Server) status(w http.ResponseWriter, r *http.Request) {
 	for _, row := range rows {
 		s.keptFor(row.Repo).setRowStatus(row.Watch, rowStatus(row))
 	}
-	s.page(w, http.StatusOK, func(out io.Writer) error {
-		return renderStatus(out, StatusPage{Repos: cfg.RepoNames(), Summary: cistatus.Summary(rows), Generated: generated, Key: s.key, Rows: rows, Version: s.version})
-	})
+	p.Repos, p.Summary, p.Rows = cfg.RepoNames(), cistatus.Summary(rows), rows
+	return p, http.StatusOK, false
+}
+
+// sendSlack reads GitHub as the status page does, posts the result to the
+// Slack webhook, and returns to the status page, which shows what was sent.
+func (s *Server) sendSlack(w http.ResponseWriter, r *http.Request) {
+	settings, set, err := cistatus.LoadSlack(s.dir)
+	if err != nil {
+		http.Error(w, err.Error()+"\n\nNothing was sent.", http.StatusInternalServerError)
+		return
+	}
+	if !set {
+		http.Error(w, "Slack is not set up: add a webhook on the Setup page.\n\nNothing was sent.", http.StatusBadRequest)
+		return
+	}
+	p, code, setup := s.readStatus(r.Context())
+	if setup {
+		http.Redirect(w, r, s.withKey("/setup"), http.StatusSeeOther)
+		return
+	}
+	p.Slack = settings.Label
+	if code != http.StatusOK {
+		p.Notice, p.NoticeBad = "Not sent to "+settings.Label+": GitHub could not be read.", true
+	} else {
+		rep := cistatus.NewReport(p.Repos, p.Rows, s.now())
+		rep.Version = s.version
+		body, err := cistatus.SlackMessage(rep, time.Local)
+		if err == nil {
+			err = cistatus.PostSlack(r.Context(), s.slackHTTP, settings.Webhook, body)
+		}
+		if err != nil {
+			p.Notice, p.NoticeBad = "Not sent to "+settings.Label+": "+err.Error(), true
+		} else {
+			p.Notice = "Sent to " + settings.Label + "."
+		}
+	}
+	s.mu.Lock()
+	s.sent = &sentPage{at: s.now(), page: p, code: code}
+	s.mu.Unlock()
+	http.Redirect(w, r, s.withKey("/"), http.StatusSeeOther)
+}
+
+// takeSent returns the page Send to Slack kept, once, if it is under a
+// minute old.
+func (s *Server) takeSent() (StatusPage, int, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	sp := s.sent
+	s.sent = nil
+	if sp == nil || s.now().Sub(sp.at) > time.Minute {
+		return StatusPage{}, 0, false
+	}
+	return sp.page, sp.code, true
 }
 
 func (s *Server) configureForm(w http.ResponseWriter, r *http.Request) {
