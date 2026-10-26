@@ -131,7 +131,7 @@ func rowStatus(r cistatus.Row) RowStatus {
 	case cistatus.Passing:
 		s.Text = "passing · " + localTime(started(r.Latest))
 	case cistatus.Running:
-		s.Text = fmt.Sprintf("running #%d", r.Latest.RunNumber)
+		s.Text = fmt.Sprintf("%s #%d", progress(r.Latest), r.Latest.RunNumber)
 	case cistatus.Other:
 		s.Text = fmt.Sprintf("%s #%d", r.Conclusion, r.Latest.RunNumber)
 	case cistatus.None:
@@ -142,7 +142,7 @@ func rowStatus(r cistatus.Row) RowStatus {
 		s.Text = "turned off on GitHub (" + r.WorkflowState + ")"
 	}
 	if r.InProgress != nil && r.State != cistatus.Running {
-		s.Text += fmt.Sprintf(" · running #%d", r.InProgress.RunNumber)
+		s.Text += fmt.Sprintf(" · %s #%d", progress(r.InProgress), r.InProgress.RunNumber)
 	}
 	return s
 }

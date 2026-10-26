@@ -32,11 +32,17 @@ For every watched workflow on a branch, one row:
   run. Retiring a workflow by disabling it takes it off the red list.
 
 A run in progress does not change a row: a red workflow stays red, at the same place, while it
-runs again. The row adds "running #N, started ..." with a link to that run, and an amber band
-moves down its coloured stripe (with reduced motion set in your system, the stripe's lower half
-is amber instead). Like the rest of the page, this is what GitHub said when the page was read:
-press **Refresh** to read again. The **Running** button shows every row with a run in progress,
-whatever its result.
+runs again. As on GitHub:
+
+- **Running:** the row adds "running #N, started ..." after a spinning amber ring, linked to the
+  run, and an amber band moves down its coloured stripe.
+- **Waiting** to start (GitHub says queued, pending, waiting or requested): the row adds
+  "waiting #N (pending) since ..." after an amber clock, and the stripe is solid amber.
+
+With reduced motion set in your system nothing moves: the ring stands still and a running
+row's stripe is half amber. Like the rest of the page, this is what GitHub said when the page
+was read: press **Refresh** to read again. The **Running** button shows every row with a run
+running or waiting, whatever its result.
 
 Every name links to the workflow's run history on that branch.
 

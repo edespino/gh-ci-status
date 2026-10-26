@@ -194,8 +194,8 @@ func TestSlackMessage(t *testing.T) {
 		"*Other (3)*\n",
 		"<" + hist("c.yml", "main") + "|Cancelled> on main: cancelled <" + runsURL + "50|#5>",
 		"<" + hist("e.yml", "dev") + "|Never ran> on dev: no runs yet",
-		"<" + hist("f.yml", "main") + "|First> on main: running <" + runsURL + "1|#1>",
-		"*Passing (2)*: <" + hist("l.yml", "main") + "|Lint> (running <" + runsURL + "61|#7>), <" + hist("d.yml", "main") + "|Docs>",
+		"<" + hist("f.yml", "main") + "|First> on main: waiting <" + runsURL + "1|#1>",
+		"*Passing (2)*: <" + hist("l.yml", "main") + "|Lint> (waiting <" + runsURL + "61|#7>), <" + hist("d.yml", "main") + "|Docs>",
 		"*Disabled (1)*: <" + hist("old.yml", "main") + "|Old>",
 		"Oct 24, 5:00 AM PDT · gh-ci-status v0.4.0",
 	} {

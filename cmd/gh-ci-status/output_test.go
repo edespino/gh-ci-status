@@ -113,11 +113,16 @@ func TestWriteText(t *testing.T) {
 	rerun.InProgress = &cistatus.Run{ID: 121, RunNumber: 21, Status: "in_progress", RunStartedAt: mustTime("2026-10-24T11:00:00Z")}
 	first := &cistatus.Run{ID: 9, RunNumber: 1, Status: "queued", RunStartedAt: mustTime("2026-10-24T11:20:00Z"), HTMLURL: "https://github.com/" + testRepo + "/actions/runs/9"}
 	never := cistatus.Row{Repo: testRepo, Watch: w("new.yml", "main"), Name: "New", State: cistatus.Running, Latest: first, InProgress: first}
-	writeText(&b, []cistatus.Row{rerun, never}, false)
+	pending := green
+	pending.InProgress = &cistatus.Run{ID: 51, RunNumber: 6, Status: "pending", RunStartedAt: mustTime("2026-10-24T11:10:00Z")}
+	writeText(&b, []cistatus.Row{rerun, never, pending}, false)
+	if line := strings.Split(b.String(), "\n")[3]; !strings.Contains(line, "Oct 23, 5:00 AM PDT · waiting #6 since Oct 24, 4:10 AM PDT") {
+		t.Errorf("passing line with a waiting run = %q", line)
+	}
 	if line := strings.Split(b.String(), "\n")[1]; !strings.HasPrefix(line, "failing   Build B on release/x  red 10 days · running #21 since Oct 24, 4:00 AM PDT  https://") {
 		t.Errorf("red line with a run in progress = %q", line)
 	}
-	if line := strings.Split(b.String(), "\n")[2]; line != "running   New on main  running since Oct 24, 4:20 AM PDT  https://github.com/"+testRepo+"/actions/runs/9" {
+	if line := strings.Split(b.String(), "\n")[2]; line != "running   New on main  waiting since Oct 24, 4:20 AM PDT  https://github.com/"+testRepo+"/actions/runs/9" {
 		t.Errorf("running line = %q", line)
 	}
 	b.Reset()

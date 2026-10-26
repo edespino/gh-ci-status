@@ -132,7 +132,7 @@ func SlackMessage(rep Report, loc *time.Location) ([]byte, error) {
 		if r.InProgress == nil {
 			return ""
 		}
-		return fmt.Sprintf("running <%s|#%d>", r.InProgress.URL, r.InProgress.Number)
+		return fmt.Sprintf("%s <%s|#%d>", progress(r.InProgress.Status), r.InProgress.URL, r.InProgress.Number)
 	}
 	section := func(s string) slackBlock {
 		return slackBlock{Type: "section", Text: &slackText{Type: "mrkdwn", Text: s}}

@@ -78,7 +78,7 @@ func TestRunningAndNeverGreenText(t *testing.T) {
 	partial := never
 	partial.Name, partial.AllHistory, partial.FailedRuns = "Partial", false, 100
 	html := statusHTML(t, never, partial, running)
-	for _, want := range []string{">running #9</a>", "started Oct 24, 4:30 AM PDT", "never green on main", "12 failed runs", "no green in the last 100 main runs"} {
+	for _, want := range []string{`<span class="spinner" aria-hidden="true"></span>running #9</a>`, "started Oct 24, 4:30 AM PDT", "never green on main", "12 failed runs", "no green in the last 100 main runs"} {
 		if !strings.Contains(html, want) {
 			t.Errorf("page lacks %q", want)
 		}
@@ -96,7 +96,10 @@ func TestRunInProgressText(t *testing.T) {
 	html := statusHTML(t, rerun, green)
 	for _, want := range []string{
 		`>failing #20</a>`, `<a href="https://github.com/` + testRepo + `/actions/runs/121">running #21</a>, started Oct 24, 4:00 AM PDT`,
-		`>passing #5</a>`, `<a href="https://github.com/` + testRepo + `/actions/runs/51">running #6</a>, started Oct 24, 4:10 AM PDT`,
+		`>passing #5</a>`, `<a href="https://github.com/` + testRepo + `/actions/runs/51">waiting #6</a> (queued) since Oct 24, 4:10 AM PDT`,
+		`data-state="passing" data-running="1" data-waiting="1" data-name="Green `,
+		`<span class="spinner" aria-hidden="true"></span><a href="https://github.com/` + testRepo + `/actions/runs/121">running #21</a>`,
+		`<svg class="clock" aria-hidden="true"`, `</svg><a href="https://github.com/` + testRepo + `/actions/runs/51">waiting #6</a>`,
 	} {
 		if !strings.Contains(html, want) {
 			t.Errorf("page lacks %s", want)
@@ -104,6 +107,9 @@ func TestRunInProgressText(t *testing.T) {
 	}
 	if strings.Contains(statusHTML(t, redRow()), "running #") {
 		t.Error("a row without a run in progress names one")
+	}
+	if strings.Count(html, "data-waiting=") != 1 {
+		t.Error("data-waiting only on a row whose run has not started")
 	}
 }
 

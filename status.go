@@ -138,6 +138,21 @@ func OwnRun(r Run, repo string) bool {
 	return strings.EqualFold(r.HeadRepository.FullName, repo) && !prEvent[r.Event]
 }
 
+// Waiting reports whether r has not started yet: queued, pending, waiting
+// (for example for an approval) or requested.
+func (r Run) Waiting() bool { return waiting(r.Status) }
+
+func waiting(status string) bool { return status != "completed" && status != "in_progress" }
+
+// progress is how a run in progress is named: "waiting" before it starts,
+// then "running".
+func progress(status string) string {
+	if waiting(status) {
+		return "waiting"
+	}
+	return "running"
+}
+
 // RunState classifies one run on its own: Running until it completes, then
 // Passing, Failing or Other by its conclusion.
 func RunState(r Run) State {

@@ -23,7 +23,13 @@ button.btn,.btn{display:inline-flex;align-items:center;gap:6px;background:var(--
 .row[data-running]{position:relative}
 .row[data-running]::before{content:"";position:absolute;left:-8px;top:0;bottom:0;width:8px;border-radius:4px 0 0 4px;background:linear-gradient(transparent 44%,var(--run) 44%,var(--run) 56%,transparent 56%) 0 0/100% 300% no-repeat;animation:stripe-band 1.5s linear infinite}
 @keyframes stripe-band{from{background-position:0 100%}to{background-position:0 0}}
-@media (prefers-reduced-motion:reduce){.row[data-running]::before{animation:none;background:linear-gradient(transparent 50%,var(--run) 50%)}}
+/* Beside the run's number, as on GitHub: a spinning ring while it runs, a clock while it waits. */
+.spinner{display:inline-block;box-sizing:border-box;width:11px;height:11px;border:2px solid var(--run);border-left-color:transparent;border-radius:50%;margin-right:5px;vertical-align:-1px;animation:run-spin 1s linear infinite}
+@keyframes run-spin{to{transform:rotate(360deg)}}
+.clock{width:13px;height:13px;color:var(--run);margin-right:4px;vertical-align:-2px}
+@media (prefers-reduced-motion:reduce){.row[data-running]::before{animation:none;background:linear-gradient(transparent 50%,var(--run) 50%)}.spinner{animation:none}}
+/* A run that has not started (queued, pending, waiting): a solid amber stripe, nothing moving. */
+.row[data-waiting]{border-left-color:var(--run)}.row[data-waiting]::before{display:none}
 .n small{display:block;color:var(--muted);font:12px ui-monospace,Menlo,monospace}
 .d{color:var(--muted)}.in-progress,.in-progress a{color:var(--run)}.age{color:var(--bad)}.bad .s{color:var(--bad);font-weight:600}.ok .s{color:var(--ok)}.run .s{color:var(--run)}
 .error{background:var(--badbg);border-left:8px solid var(--bad);padding:8px 12px;border-radius:4px}
@@ -53,7 +59,7 @@ a{color:var(--link)}.gap{height:12px}
 </div>
 <p class="sub" id="no-match" hidden>No workflow matches the filter.</p>
 {{end}}{{range $i, $r := .Rows}}{{if gapAt $.Rows $i}}<div class="gap"></div>{{end}}
-<div class="row {{stateClass $r.State}}" data-state="{{$r.State}}"{{if $r.InProgress}} data-running="1"{{end}} data-name="{{$r.Name}} {{$r.Watch.Workflow}} {{$r.Watch.Branch}} {{$r.Repo}}">
+<div class="row {{stateClass $r.State}}" data-state="{{$r.State}}"{{with $r.InProgress}} data-running="1"{{if .Waiting}} data-waiting="1"{{end}}{{end}} data-name="{{$r.Name}} {{$r.Watch.Workflow}} {{$r.Watch.Branch}} {{$r.Repo}}">
 <span class="n"><a href="{{historyURL $r.Repo $r.Watch.Workflow $r.Watch.Branch}}">{{$r.Name}}</a><small>{{if $.MultiRepo}}{{$r.Repo}} · {{end}}{{$r.Watch.Workflow}} · {{$r.Watch.Branch}}</small></span>
 {{- if eq $r.State "failing"}}
 <a class="s" href="{{$r.Latest.HTMLURL}}">failing #{{$r.Latest.RunNumber}}</a>
@@ -62,8 +68,8 @@ a{color:var(--link)}.gap{height:12px}
 {{- else if $r.AllHistory}} · never green on {{$r.Watch.Branch}} · {{plural $r.FailedRuns "failed run"}}
 {{- else}} · no green in the last {{plural $r.FailedRuns (printf "%s run" $r.Watch.Branch)}}{{end}}{{template "in-progress" $r}}</span>
 {{- else if eq $r.State "running"}}
-<a class="s" href="{{$r.Latest.HTMLURL}}">running #{{$r.Latest.RunNumber}}</a>
-<span class="d">started {{localTime (started $r.Latest)}}</span>
+<a class="s" href="{{$r.Latest.HTMLURL}}">{{if $r.Latest.Waiting}}{{template "icon-clock"}}{{else}}<span class="spinner" aria-hidden="true"></span>{{end}}{{progress $r.Latest}} #{{$r.Latest.RunNumber}}</a>
+<span class="d">{{if $r.Latest.Waiting}}{{$r.Latest.Status}} since{{else}}started{{end}} {{localTime (started $r.Latest)}}</span>
 {{- else if eq $r.State "passing"}}
 <a class="s" href="{{$r.Latest.HTMLURL}}">passing #{{$r.Latest.RunNumber}}</a>
 <span class="d">{{localTime (started $r.Latest)}}{{template "in-progress" $r}}</span>
@@ -129,4 +135,4 @@ a{color:var(--link)}.gap{height:12px}
 {{template "busy" .}}
 </body>
 </html>
-{{define "in-progress"}}{{with .InProgress}} · <span class="in-progress"><a href="{{.HTMLURL}}">running #{{.RunNumber}}</a>, started {{localTime (started .)}}</span>{{end}}{{end}}
+{{define "in-progress"}}{{with .InProgress}} · <span class="in-progress">{{if .Waiting}}{{template "icon-clock"}}<a href="{{.HTMLURL}}">waiting #{{.RunNumber}}</a> ({{.Status}}) since{{else}}<span class="spinner" aria-hidden="true"></span><a href="{{.HTMLURL}}">running #{{.RunNumber}}</a>, started{{end}} {{localTime (started .)}}</span>{{end}}{{end}}

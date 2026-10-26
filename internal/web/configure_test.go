@@ -103,6 +103,8 @@ func TestRowStatusText(t *testing.T) {
 	running := Row{Repo: testRepo, Watch: mainWatch, State: Running, Latest: first, InProgress: first}
 	rerun := failing
 	rerun.InProgress = runAt(121, 21, "main", "in_progress", "", "2026-10-24T11:00:00Z")
+	waiting := passing
+	waiting.InProgress = runAt(51, 6, "main", "pending", "", "2026-10-24T11:10:00Z")
 	other := Row{Repo: testRepo, Watch: mainWatch, State: Other, Conclusion: "cancelled", Latest: runAt(5, 5, "main", "completed", "cancelled", "2026-10-24T10:00:00Z")}
 	none := Row{Repo: testRepo, Watch: Watch{Workflow: "b.yml", Branch: "dev"}, State: None}
 	errRow := Row{Repo: testRepo, Watch: mainWatch, State: Error, Err: "GET /x: 404 Not Found"}
@@ -114,6 +116,7 @@ func TestRowStatusText(t *testing.T) {
 		{passing, "passing · Oct 23, 5:00 AM PDT", "https://github.com/" + testRepo + "/actions/runs/50"},
 		{running, "running #9", "https://github.com/" + testRepo + "/actions/runs/41"},
 		{rerun, "failing since Oct 14 (#20) · running #21", "https://github.com/" + testRepo + "/actions/runs/120"},
+		{waiting, "passing · Oct 23, 5:00 AM PDT · waiting #6", "https://github.com/" + testRepo + "/actions/runs/50"},
 		{other, "cancelled #5", "https://github.com/" + testRepo + "/actions/runs/5"},
 		{none, "no run on dev", cistatus.HistoryURL(testRepo, "b.yml", "dev")},
 		{errRow, "GET /x: 404 Not Found", cistatus.HistoryURL(testRepo, "b.yml", "main")},

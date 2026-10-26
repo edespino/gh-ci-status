@@ -225,6 +225,16 @@ func TestPullRequestRunsIgnored(t *testing.T) {
 	}
 }
 
+// A run that has not started (queued, pending, waiting for an approval,
+// requested) is waiting; one that is running is not.
+func TestRunWaiting(t *testing.T) {
+	for status, want := range map[string]bool{"queued": true, "pending": true, "waiting": true, "requested": true, "in_progress": false, "completed": false} {
+		if got := (Run{Status: status}).Waiting(); got != want {
+			t.Errorf("Waiting(%s) = %v", status, got)
+		}
+	}
+}
+
 func TestRunState(t *testing.T) {
 	for _, c := range []struct {
 		status, conclusion string

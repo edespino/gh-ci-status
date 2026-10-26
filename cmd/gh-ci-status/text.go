@@ -24,7 +24,7 @@ func writeText(w io.Writer, rows []cistatus.Row, multiRepo bool) {
 		case cistatus.Failing:
 			detail = "red " + r.Age
 		case cistatus.Running:
-			detail = "running since " + detail
+			detail = progress(r.Latest) + " since " + detail
 		case cistatus.Other:
 			state = r.Conclusion
 		case cistatus.None:
@@ -35,7 +35,7 @@ func writeText(w io.Writer, rows []cistatus.Row, multiRepo bool) {
 			detail = "turned off on GitHub (" + r.WorkflowState + ")"
 		}
 		if r.InProgress != nil && r.State != cistatus.Running {
-			detail += fmt.Sprintf(" · running #%d since %s", r.InProgress.RunNumber, localTime(started(r.InProgress)))
+			detail += fmt.Sprintf(" · %s #%d since %s", progress(r.InProgress), r.InProgress.RunNumber, localTime(started(r.InProgress)))
 		}
 		name := r.Name
 		if multiRepo {
@@ -55,4 +55,13 @@ func started(r *cistatus.Run) time.Time {
 		return r.CreatedAt
 	}
 	return r.RunStartedAt
+}
+
+// progress names a run in progress: "waiting" before it starts, then
+// "running".
+func progress(r *cistatus.Run) string {
+	if r.Waiting() {
+		return "waiting"
+	}
+	return "running"
 }

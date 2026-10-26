@@ -23,6 +23,7 @@ var templates = template.Must(template.New("").Funcs(template.FuncMap{
 	"plural":     plural,
 	"outcome":    outcome,
 	"started":    started,
+	"progress":   progress,
 	"gapAt":      gapAt,
 	"stateClass": stateClass,
 	"wordmark":   func() template.HTML { return wordmarkHTML },
@@ -147,6 +148,15 @@ func outcome(r *cistatus.Run) string {
 		return r.Status
 	}
 	return r.Conclusion
+}
+
+// progress names a run in progress: "waiting" before it starts, then
+// "running".
+func progress(r *cistatus.Run) string {
+	if r.Waiting() {
+		return "waiting"
+	}
+	return "running"
 }
 
 func redish(r cistatus.Row) bool { return r.State == cistatus.Failing || r.State == cistatus.Error }

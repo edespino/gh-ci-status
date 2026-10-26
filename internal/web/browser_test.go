@@ -460,28 +460,41 @@ func statusPage(t *testing.T, rows []Row, beforeScript, probe string, flags ...s
 }
 
 // A row with a run in progress moves an amber band down its stripe; the
-// stripe keeps the result's colour, grey when no run has finished. With
-// reduced motion nothing moves: the stripe's lower half is amber instead.
+// stripe keeps the result's colour, grey when no run has finished. A run that
+// has not started (queued, pending, waiting) makes the stripe solid amber,
+// without the band. A running run's text has a spinning ring, a waiting one a
+// clock. With reduced motion nothing moves: the stripe's lower half is
+// amber instead, and the ring stands still.
 // Both runs set the preference, because CI's macOS runners ask for reduced
 // motion.
 func TestRunInProgressStripeMoves(t *testing.T) {
 	chrome(t)
 	rows := filterRows()
 	rows[0].InProgress = runAt(121, 21, "release/x", "in_progress", "", "2026-10-24T11:00:00Z")
-	first := runAt(60, 1, "main", "queued", "", "2026-10-24T11:20:00Z")
-	rows = append(rows, Row{Repo: testRepo, Watch: Watch{Workflow: "new.yml", Branch: "main"}, Name: "New", State: Running, Latest: first, InProgress: first})
+	rows[1].InProgress = runAt(52, 7, "main", "pending", "", "2026-10-24T11:10:00Z")
+	first := runAt(60, 1, "main", "in_progress", "", "2026-10-24T11:20:00Z")
+	queued := runAt(61, 1, "main", "queued", "", "2026-10-24T11:25:00Z")
+	rows = append(rows, Row{Repo: testRepo, Watch: Watch{Workflow: "new.yml", Branch: "main"}, Name: "New", State: Running, Latest: first, InProgress: first},
+		Row{Repo: testRepo, Watch: Watch{Workflow: "q.yml", Branch: "main"}, Name: "Queued", State: Running, Latest: queued, InProgress: queued})
 	const probe = `
   function row(n) { return document.querySelector('.row[data-name^="' + n + ' "]'); }
+  function stripe(n) { return getComputedStyle(row(n)).borderLeftColor; }
   var moving = document.getAnimations().filter(function (a) { return a.playState === "running" && a.effect.pseudoElement === "::before"; })
     .map(function (a) { return a.effect.target.dataset.name.split(" ")[0]; }).sort().join(",");
   var band = getComputedStyle(row("Build"), "::before").backgroundImage.indexOf("rgb(202, 138, 4)") !== -1;
   document.body.setAttribute("data-result", [matchMedia("(prefers-reduced-motion: reduce)").matches, moving, band,
-    getComputedStyle(row("Build")).borderLeftColor, getComputedStyle(row("New")).borderLeftColor,
-    getComputedStyle(row("Green"), "::before").content].join("|"));`
-	if got := statusPage(t, rows, ``, probe, "--force-prefers-no-reduced-motion"); got != "false|Build,New|true|rgb(220, 38, 38)|rgb(161, 161, 170)|none" {
+    stripe("Build"), stripe("New"), stripe("Green"), stripe("Queued"),
+    getComputedStyle(row("Green"), "::before").display, getComputedStyle(row("Deploy"), "::before").content,
+    spinning(), names(".row .spinner"), names(".row .clock")].join("|"));`
+	const helpers = `
+  function names(sel) { return Array.prototype.map.call(document.querySelectorAll(sel), function (e) { return e.closest(".row").dataset.name.split(" ")[0]; }).sort().join(","); }
+  function spinning() { return document.getAnimations().filter(function (a) { return a.playState === "running" && a.effect.target.classList.contains("spinner"); })
+    .map(function (a) { return a.effect.target.closest(".row").dataset.name.split(" ")[0]; }).sort().join(","); }`
+	const rest = "|true|rgb(220, 38, 38)|rgb(161, 161, 170)|rgb(202, 138, 4)|rgb(202, 138, 4)|none|none|"
+	if got := statusPage(t, rows, ``, helpers+probe, "--force-prefers-no-reduced-motion"); got != "false|Build,New"+rest+"Build,New|Build,New|Green,Queued" {
 		t.Errorf("got %q", got)
 	}
-	if got := statusPage(t, rows, ``, probe, "--force-prefers-reduced-motion"); got != "true||true|rgb(220, 38, 38)|rgb(161, 161, 170)|none" {
+	if got := statusPage(t, rows, ``, helpers+probe, "--force-prefers-reduced-motion"); got != "true|"+rest+"|Build,New|Green,Queued" {
 		t.Errorf("reduced motion: got %q", got)
 	}
 }
