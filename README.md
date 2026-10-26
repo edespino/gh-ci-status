@@ -24,15 +24,19 @@ For every watched workflow on a branch, one row:
 - **failing:** red for how long, the failed step (linked to its log), how many runs failed
   since the last green one, and a link to that green run. "Never green" when no run in the
   workflow's history on that branch passed.
-- **running:** a workflow that has not finished a run on that branch yet, and since when.
+- **running:** a workflow that has not finished a run on that branch yet (grey stripe), and since
+  when.
 - **passing**, **cancelled** and other results, with the time of the run.
 - **no runs** on that branch yet, or **error** when GitHub could not be read.
 - **disabled** (greyed, at the bottom) when the workflow is turned off on GitHub, with its last
   run. Retiring a workflow by disabling it takes it off the red list.
 
 A run in progress does not change a row: a red workflow stays red, at the same place, while it
-runs again, and the row adds "running #N, started ..." with a link to that run. The **Running**
-button shows every row with a run in progress, whatever its result.
+runs again. The row adds "running #N, started ..." with a link to that run, and an amber band
+moves down its coloured stripe (with reduced motion set in your system, the stripe's lower half
+is amber instead). Like the rest of the page, this is what GitHub said when the page was read:
+press **Refresh** to read again. The **Running** button shows every row with a run in progress,
+whatever its result.
 
 Every name links to the workflow's run history on that branch.
 

@@ -90,14 +90,15 @@ func TestConfigurePageInBrowser(t *testing.T) {
 
 // chromeDOM loads url in headless Chrome and returns the DOM after its
 // scripts have run.
-func chromeDOM(t *testing.T, url string) string {
+func chromeDOM(t *testing.T, url string, flags ...string) string {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 	// --no-sandbox: CI runners may not allow Chrome's sandbox; these pages are
 	// the tests' own.
-	out, err := exec.CommandContext(ctx, chrome(t), "--headless=new", "--disable-gpu", "--no-first-run", "--no-sandbox",
-		"--user-data-dir="+filepath.Join(t.TempDir(), "profile"), "--virtual-time-budget=10000", "--dump-dom", url).Output()
+	args := append([]string{"--headless=new", "--disable-gpu", "--no-first-run", "--no-sandbox",
+		"--user-data-dir=" + filepath.Join(t.TempDir(), "profile"), "--virtual-time-budget=10000"}, flags...)
+	out, err := exec.CommandContext(ctx, chrome(t), append(args, "--dump-dom", url)...).Output()
 	if err != nil {
 		t.Fatalf("chrome: %v", err)
 	}
@@ -443,7 +444,7 @@ func TestWatchAllFailingSkipsTurnedOff(t *testing.T) {
 
 // statusPage renders the status page with rows, runs beforeScript before the
 // page's own script and probe after it, and returns the probe's data-result.
-func statusPage(t *testing.T, rows []Row, beforeScript, probe string) string {
+func statusPage(t *testing.T, rows []Row, beforeScript, probe string, flags ...string) string {
 	t.Helper()
 	page := strings.Replace(strings.Replace(statusHTML(t, rows...), "<body>", "<body><script>"+beforeScript+"</script>", 1),
 		"</body>", `<script>setTimeout(function () {`+probe+`}, 50);</script></body>`, 1)
@@ -451,11 +452,36 @@ func statusPage(t *testing.T, rows []Row, beforeScript, probe string) string {
 	if err := os.WriteFile(path, []byte(page), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	m := regexp.MustCompile(`data-result="([^"]*)"`).FindStringSubmatch(chromeDOM(t, "file://"+path))
+	m := regexp.MustCompile(`data-result="([^"]*)"`).FindStringSubmatch(chromeDOM(t, "file://"+path, flags...))
 	if m == nil {
 		t.Fatal("probe gave no result")
 	}
 	return m[1]
+}
+
+// A row with a run in progress moves an amber band down its stripe; the
+// stripe keeps the result's colour, grey when no run has finished. With
+// reduced motion nothing moves: the stripe's lower half is amber instead.
+func TestRunInProgressStripeMoves(t *testing.T) {
+	chrome(t)
+	rows := filterRows()
+	rows[0].InProgress = runAt(121, 21, "release/x", "in_progress", "", "2026-10-24T11:00:00Z")
+	first := runAt(60, 1, "main", "queued", "", "2026-10-24T11:20:00Z")
+	rows = append(rows, Row{Repo: testRepo, Watch: Watch{Workflow: "new.yml", Branch: "main"}, Name: "New", State: Running, Latest: first, InProgress: first})
+	const probe = `
+  function row(n) { return document.querySelector('.row[data-name^="' + n + ' "]'); }
+  var moving = document.getAnimations().filter(function (a) { return a.playState === "running" && a.effect.pseudoElement === "::before"; })
+    .map(function (a) { return a.effect.target.dataset.name.split(" ")[0]; }).sort().join(",");
+  var band = getComputedStyle(row("Build"), "::before").backgroundImage.indexOf("rgb(202, 138, 4)") !== -1;
+  document.body.setAttribute("data-result", [matchMedia("(prefers-reduced-motion: reduce)").matches, moving, band,
+    getComputedStyle(row("Build")).borderLeftColor, getComputedStyle(row("New")).borderLeftColor,
+    getComputedStyle(row("Green"), "::before").content].join("|"));`
+	if got := statusPage(t, rows, ``, probe); got != "false|Build,New|true|rgb(220, 38, 38)|rgb(161, 161, 170)|none" {
+		t.Errorf("got %q", got)
+	}
+	if got := statusPage(t, rows, ``, probe, "--force-prefers-reduced-motion"); got != "true||true|rgb(220, 38, 38)|rgb(161, 161, 170)|none" {
+		t.Errorf("reduced motion: got %q", got)
+	}
 }
 
 func filterRows() []Row {
