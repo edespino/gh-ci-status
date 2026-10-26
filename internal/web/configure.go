@@ -23,7 +23,7 @@ type WatchItem struct {
 // branches (not the default) that recently ran it, each with its latest result.
 type ConfigureItem struct {
 	File, Name, State string
-	Watched           bool // watched on at least one branch
+	WatchedOnDefault  bool // watched on the default branch: no + main, and the "Watch" buttons skip it
 	Branches          []BranchStatus
 }
 
@@ -60,9 +60,8 @@ func configureModel(workflows []cistatus.Workflow, recent []cistatus.Run, repo s
 	var watching []WatchItem
 	index := map[string]int{}
 	isWatched := map[cistatus.Watch]bool{}
-	fileWatched := map[string]bool{}
 	for _, w := range watched {
-		isWatched[w], fileWatched[w.Workflow] = true, true
+		isWatched[w] = true
 		i, ok := index[w.Workflow]
 		if !ok {
 			name, present := names[w.Workflow]
@@ -99,7 +98,7 @@ func configureModel(workflows []cistatus.Workflow, recent []cistatus.Run, repo s
 	}
 
 	for i := range items {
-		items[i].Watched = fileWatched[items[i].File]
+		items[i].WatchedOnDefault = isWatched[cistatus.Watch{Workflow: items[i].File, Branch: defaultBranch}]
 		items[i].Branches = branches[items[i].File]
 	}
 	sort.SliceStable(items, func(i, j int) bool { return strings.ToLower(items[i].Name) < strings.ToLower(items[j].Name) })

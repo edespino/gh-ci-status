@@ -97,11 +97,11 @@ nav.repos a.repo.on{outline:2px solid var(--link)}
 <form method="post" action="/watch-many?key={{.Key}}" id="watch-failing" data-busy="Adding failing workflows…"><input type="hidden" name="repo" value="{{$.Repo}}"><span id="failing-inputs"></span><button type="submit" disabled>Watch all failing <span id="n-add-failing"></span></button></form>
 </div>
 {{range .Items}}{{$file := .File}}
-<div class="add-item" data-file="{{.File}}" data-name="{{.Name}} {{.File}}" data-watched="{{.Watched}}" data-active="{{eq .State "active"}}" data-state="">
+<div class="add-item" data-file="{{.File}}" data-name="{{.Name}} {{.File}}" data-watched="{{.WatchedOnDefault}}" data-active="{{eq .State "active"}}" data-state="">
 <span class="dot" data-workflow="{{.File}}" data-branch="{{$.DefaultBranch}}"></span>
 <span><b>{{.Name}}</b> <small>{{.File}}</small>{{if and .State (ne .State "active")}} <em class="warn">{{.State}}</em>{{end}}</span>
 <a class="mono status" href="#">reading…</a>
-<form class="inline" method="post" action="/watch?key={{$.Key}}" data-busy="Saving…"><input type="hidden" name="repo" value="{{$.Repo}}"><input type="hidden" name="workflow" value="{{.File}}"><input type="hidden" name="branch" value="{{$.DefaultBranch}}"><button type="submit">+ {{$.DefaultBranch}}</button></form>
+{{if .WatchedOnDefault}}<button type="button" disabled title="already watched on {{$.DefaultBranch}}">watching {{$.DefaultBranch}}</button>{{else}}<form class="inline" method="post" action="/watch?key={{$.Key}}" data-busy="Saving…"><input type="hidden" name="repo" value="{{$.Repo}}"><input type="hidden" name="workflow" value="{{.File}}"><input type="hidden" name="branch" value="{{$.DefaultBranch}}"><button type="submit">+ {{$.DefaultBranch}}</button></form>{{end}}
 <details><summary>other branches{{if .Branches}} ({{len .Branches}}){{end}}</summary>
 <div class="panel">
 {{range .Branches}}<div class="branch"><span class="dot {{stateClass .State}}"></span><span class="mono">{{.Name}}</span><a class="mono" href="{{.RunURL}}">{{if eq .State "other"}}{{.Conclusion}}{{else}}{{.State}}{{end}} #{{.RunNumber}}</a>{{if .Watched}}<em class="mono">watching</em>{{else}}<form class="inline" method="post" action="/watch?key={{$.Key}}" data-busy="Saving…"><input type="hidden" name="repo" value="{{$.Repo}}"><input type="hidden" name="workflow" value="{{$file}}"><input type="hidden" name="branch" value="{{.Name}}"><button type="submit">+ watch</button></form>{{end}}</div>

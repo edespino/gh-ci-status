@@ -318,7 +318,7 @@ func TestWatchShownFollowsFilter(t *testing.T) {
 	p.Items = append(p.Items,
 		ConfigureItem{File: "d.yml", Name: "Deploy", State: "active"},
 		ConfigureItem{File: "e.yml", Name: "Deploy docs", State: "active"},
-		ConfigureItem{File: "f.yml", Name: "Deploy site", State: "active", Watched: true},
+		ConfigureItem{File: "f.yml", Name: "Deploy site", State: "active", WatchedOnDefault: true},
 		ConfigureItem{File: "g.yml", Name: "Deploy old", State: "disabled_manually"},
 		ConfigureItem{File: "h.yml", Name: "Deploy gone", State: "deleted"})
 	var b bytes.Buffer
@@ -369,7 +369,7 @@ func viewPage(t *testing.T, beforeScript, probe string) string {
 	p.Items = append(p.Items,
 		ConfigureItem{File: "d.yml", Name: "Deploy", State: "active"},
 		ConfigureItem{File: "e.yml", Name: "Deploy docs", State: "active"},
-		ConfigureItem{File: "f.yml", Name: "Deploy site", State: "active", Watched: true})
+		ConfigureItem{File: "f.yml", Name: "Deploy site", State: "active", WatchedOnDefault: true})
 	var b bytes.Buffer
 	if err := renderConfigure(&b, p); err != nil {
 		t.Fatal(err)

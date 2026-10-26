@@ -140,7 +140,7 @@ func sampleConfigurePage() ConfigurePage {
 			{File: "gone.yml", Name: "gone.yml", Missing: true, Branches: []string{"main"}},
 		},
 		Items: []ConfigureItem{
-			{File: "b.yml", Name: "Build B", State: "active", Watched: true, Branches: []BranchStatus{
+			{File: "b.yml", Name: "Build B", State: "active", WatchedOnDefault: true, Branches: []BranchStatus{
 				{Name: "release/x", State: Passing, RunNumber: 4, RunURL: "https://github.com/o/r/actions/runs/4", Watched: true},
 				{Name: "dev", State: Failing, RunNumber: 5, RunURL: "https://github.com/o/r/actions/runs/5"},
 			}},
@@ -370,5 +370,21 @@ func TestStatusFilterBar(t *testing.T) {
 	}
 	if empty := statusHTML(t); strings.Contains(empty, `id="filter"`) {
 		t.Error("no filter when nothing is watched")
+	}
+}
+
+// A workflow already watched on the default branch shows a disabled
+// "watching main" instead of + main; others keep + main.
+func TestConfigureWatchedOnMainHasNoAddButton(t *testing.T) {
+	html := configureHTML(t)
+	item := func(file string) string {
+		return regexp.MustCompile(`(?s)<div class="add-item" data-file="` + regexp.QuoteMeta(file) + `".*?<details>`).FindString(html)
+	}
+	b, c := item("b.yml"), item("c.yml")
+	if !regexp.MustCompile(`<button type="button" disabled[^>]*>watching main</button>`).MatchString(b) || strings.Contains(b, `action="/watch?key=`) {
+		t.Errorf("b.yml (watched on main):\n%s", b)
+	}
+	if !strings.Contains(c, ">+ main</button>") || !strings.Contains(c, `action="/watch?key=`) {
+		t.Errorf("c.yml (not watched):\n%s", c)
 	}
 }

@@ -55,11 +55,13 @@ func TestConfigureModelItems(t *testing.T) {
 		wfAt("Zed", ".github/workflows/z.yml", "disabled_manually"),
 		wfAt("alpha", ".github/workflows/a.yml", "active"),
 	}
-	_, items := configureModel(wfs, nil, testRepo, []Watch{{Workflow: "z.yml", Branch: "dev"}}, "main")
+	// The Add list is about the default branch: a workflow watched only on dev
+	// still offers + main.
+	_, items := configureModel(wfs, nil, testRepo, []Watch{{Workflow: "z.yml", Branch: "dev"}, {Workflow: "a.yml", Branch: "main"}}, "main")
 	if len(items) != 2 || items[0].File != "a.yml" || items[1].File != "z.yml" {
 		t.Fatalf("items = %+v", items)
 	}
-	if items[1].State != "disabled_manually" || !items[1].Watched || items[0].Watched {
+	if items[1].State != "disabled_manually" || items[1].WatchedOnDefault || !items[0].WatchedOnDefault {
 		t.Errorf("items = %+v", items)
 	}
 }
