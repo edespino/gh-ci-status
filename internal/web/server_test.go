@@ -89,7 +89,7 @@ func TestRootCorruptConfig(t *testing.T) {
 	}
 	rec := do(s, "GET", keyed("/"), host, nil)
 	body := rec.Body.String()
-	if rec.Code != 500 || !strings.Contains(body, path) || !strings.Contains(body, "Open Setup") {
+	if rec.Code != 500 || !strings.Contains(body, path) || !strings.Contains(body, "Open Settings") {
 		t.Fatalf("code %d body %s", rec.Code, body)
 	}
 }
@@ -297,7 +297,7 @@ func TestWatchNeedsASetUpRepo(t *testing.T) {
 	before, _ := os.ReadFile(filepath.Join(s.dir, "config.json"))
 	for _, repo := range []string{"", "o/not-set-up"} {
 		rec := do(s, "POST", keyed("/watch"), host, url.Values{"repo": {repo}, "workflow": {"b.yml"}, "branch": {"main"}})
-		if rec.Code != 400 || !strings.Contains(rec.Body.String(), "Setup") {
+		if rec.Code != 400 || !strings.Contains(rec.Body.String(), "Settings") {
 			t.Errorf("repo %q: code %d body %q", repo, rec.Code, rec.Body.String())
 		}
 	}
@@ -361,7 +361,7 @@ func TestConfigurePageCarriesKeyAndRepo(t *testing.T) {
 	body := do(s, "GET", keyed("/configure")+"&repo="+testRepo, host, nil).Body.String()
 	for _, want := range []string{`href="/?key=` + testKey + `"`, `action="/unwatch?key=` + testKey + `"`,
 		`action="/watch?key=` + testKey + `"`, `action="/watch-many?key=` + testKey + `"`, "WF b.yml", "WF extra.yml",
-		`<input type="hidden" name="repo" value="` + testRepo + `">`, `href="/setup?key=` + testKey + `"`} {
+		`<input type="hidden" name="repo" value="` + testRepo + `">`, `href="/setup?key=` + testKey + `#repositories"`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("configure page lacks %s", want)
 		}
@@ -381,7 +381,7 @@ func TestConfigureChoosesRepo(t *testing.T) {
 	if body := do(s, "GET", keyed("/configure"), host, nil).Body.String(); !strings.Contains(body, "WF b.yml") {
 		t.Fatal("without ?repo= Configure should open the first repository")
 	}
-	if rec := do(s, "GET", keyed("/configure")+"&repo=o/not-set-up", host, nil); rec.Code != 404 || !strings.Contains(rec.Body.String(), "Setup") {
+	if rec := do(s, "GET", keyed("/configure")+"&repo=o/not-set-up", host, nil); rec.Code != 404 || !strings.Contains(rec.Body.String(), "Settings") {
 		t.Fatalf("unknown repo: code %d body %q", rec.Code, rec.Body.String())
 	}
 }
@@ -410,7 +410,7 @@ func TestUnwatchAllKeepsRepo(t *testing.T) {
 		t.Fatalf("code %d cfg %+v", rec.Code, cfg)
 	}
 	page := do(s, "GET", keyed("/"), host, nil)
-	if body := page.Body.String(); page.Code != 200 || !strings.Contains(body, "nothing watched") || strings.Contains(body, `class="row `) || !strings.Contains(body, "Open Configure") {
+	if body := page.Body.String(); page.Code != 200 || !strings.Contains(body, "nothing watched") || strings.Contains(body, `class="row `) || !strings.Contains(body, "Choose workflows") {
 		t.Fatalf("status after remove all: %d %s", page.Code, body)
 	}
 }

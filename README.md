@@ -73,9 +73,9 @@ On the first run:
    can reach the GitHub API. Anything missing is reported with what to do about it.
 2. It prints an address like `http://127.0.0.1:8723/?key=...` and opens it. Bookmark it: the
    address stays the same every time you start `gh ci-status serve`.
-3. The page opens on **Setup**. Type a repository as `owner/name`, or paste its GitHub address.
+3. The page opens on **Settings**. Type a repository as `owner/name`, or paste its GitHub address.
    gh-ci-status checks that your login can read it and that it has GitHub Actions workflows.
-4. **Configure** lists every workflow in that repository with its current status on the default
+4. **Workflows** lists every workflow in that repository with its current status on the default
    branch. Pick what to watch: **+ main** for one workflow, **Watch N shown** for everything
    the filter shows, **Watch all failing** for every failing one, or another branch under
    **other branches**. Changes save as you click, and the filter stays as it was, so you can
@@ -83,7 +83,9 @@ On the first run:
    to watch everything else, choose **All**, clear the filter and press **Watch N shown**.
 5. **Done** shows the status page. Press **Refresh** whenever you want it read again. With many
    rows, the filter box and the state buttons (**Red**, **Passing**, **Disabled** and so on, with
-   counts) narrow the list; the filter stays through **Refresh**.
+   counts) narrow the list; the filter stays through **Refresh**. **Workflows** (the checklist
+   icon) changes what you watch; **Settings** (the gear) has the GitHub login, the repositories
+   and Slack.
 
 From the terminal instead:
 
@@ -113,16 +115,16 @@ The status page can post the status to one Slack channel, when you press **Send 
    **Incoming Webhooks**, turn on **Activate Incoming Webhooks**, press **Add New Webhook to
    Workspace**, pick the channel and copy the address
    (`https://hooks.slack.com/services/...`).
-2. On the **Setup** page, paste it under **Slack**, with the name to show for it (for example
+2. On the **Settings** page, paste it under **Slack**, with the name to show for it (for example
    `#ci-status`), and press **Save**.
-3. **Send to Slack** on the status page now posts (until a webhook is saved, it opens Setup's
-   Slack section). It asks first, reads GitHub again, posts the result and shows what it sent,
+3. **Send to Slack** on the status page now posts (until a webhook is saved, it opens the Slack
+   section of Settings). It asks first, reads GitHub again, posts the result and shows what it sent,
    with "Sent to #ci-status." or Slack's answer if it refused.
 
 The message has the summary, each red row with its failed step, the runs since the last green
 one and any run in progress, then the other rows in short lists. Links go to GitHub; the page's
 own address is never sent. The webhook address is a secret: it is kept in `slack.json`, readable
-only by you, never shown again, logged or sent anywhere but Slack. **Remove** on Setup forgets
+only by you, never shown again, logged or sent anywhere but Slack. **Remove** on Settings forgets
 it.
 
 ## Commands
@@ -174,7 +176,7 @@ A `disabled` row also has `workflow_state`, GitHub's word for it (for example `d
 ```mermaid
 flowchart LR
     subgraph computer["Your computer"]
-        browser["Browser<br/>status, Configure, Setup"]
+        browser["Browser<br/>status, Workflows, Settings"]
         terminal["Terminal<br/>gh ci-status, --json, check, add"]
         serve["gh ci-status serve<br/>127.0.0.1 only, key in every URL"]
         lib["cistatus library<br/>checks, collect, evaluate, report"]
@@ -203,9 +205,9 @@ flowchart LR
   else's code or a merge into another branch.
 - **Red since.** The first red run after the last green one. When the whole history on that
   branch has no green run, the row says "never green".
-- **Configure keeps what it read.** The workflow list, recent branches and status dots are
-  read once and reused until you press Refresh on Configure, so changing what you watch is
-  instant. The status page always reads fresh and updates what Configure shows.
+- **The Workflows page keeps what it read.** The workflow list, recent branches and status dots
+  are read once and reused until you press Refresh there, so changing what you watch is
+  instant. The status page always reads fresh and updates what the Workflows page shows.
 
 See [docs/architecture.md](docs/architecture.md) for the packages, the requests each page
 makes, and the design decisions.

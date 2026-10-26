@@ -204,7 +204,7 @@ func TestSendToSlackNotSetUp(t *testing.T) {
 	s, f, _ := newTestServer(t)
 	serveRepo(f, "b.yml")
 	writeConfig(t, s, mainWatch)
-	if rec := do(s, "POST", keyed("/slack/send"), host, url.Values{}); rec.Code != 400 || !strings.Contains(rec.Body.String(), "Setup") {
+	if rec := do(s, "POST", keyed("/slack/send"), host, url.Values{}); rec.Code != 400 || !strings.Contains(rec.Body.String(), "Settings") {
 		t.Fatalf("code %d body %s", rec.Code, rec.Body.String())
 	}
 	if rec := do(s, "GET", keyed("/slack/send"), host, nil); rec.Code != 405 {

@@ -274,7 +274,7 @@ func TestPagesShowWordmark(t *testing.T) {
 			t.Errorf("%s header shows the tagline", name)
 		}
 	}
-	if !strings.Contains(strings.SplitN(cfg, "</header>", 2)[0], ">Configure</h1>") {
+	if !strings.Contains(strings.SplitN(cfg, "</header>", 2)[0], ">Workflows</h1>") {
 		t.Error("configure header lost its title")
 	}
 }

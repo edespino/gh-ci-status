@@ -48,8 +48,9 @@ a{color:var(--link)}.gap{height:12px}
 <div class="actions">
 <form method="post" action="/refresh?key={{.Key}}" data-busy="Refreshing from GitHub…"><button class="btn" type="submit">{{template "icon-refresh"}}Refresh</button></form>
 {{with .Slack}}<form method="post" action="/slack/send?key={{$.Key}}" data-busy="Reading GitHub and sending to Slack…" data-confirm="Send the status to {{.}}?"><button class="btn" type="submit" title="read GitHub again and post the status to {{.}}">{{template "icon-send"}}Send to Slack</button></form>
-{{else}}<a class="btn" href="/setup?key={{.Key}}#slack" data-busy="Loading Setup…" title="set up a Slack channel to send the status to">{{template "icon-send"}}Send to Slack</a>
-{{end}}<a class="btn" href="/configure?key={{.Key}}" data-busy="Loading Configure…" title="choose what to watch">{{template "icon-gear"}}Configure</a>
+{{else}}<a class="btn" href="/setup?key={{.Key}}#slack" data-busy="Loading Settings…" title="set up a Slack channel to send the status to">{{template "icon-send"}}Send to Slack</a>
+{{end}}<a class="btn" href="/configure?key={{.Key}}" data-busy="Loading Workflows…" title="choose which workflows to watch">{{template "icon-checklist"}}Workflows</a>
+<a class="btn" href="/setup?key={{.Key}}" data-busy="Loading Settings…" title="GitHub login, repositories and Slack">{{template "icon-gear"}}Settings</a>
 </div>
 </header>
 {{if .Error}}<p class="error">{{.Error}}</p>{{end}}
@@ -88,12 +89,12 @@ a{color:var(--link)}.gap{height:12px}
 <span class="d">{{$r.Err}}</span>
 {{- end}}
 </div>
-{{else}}{{if not .Error}}<p class="sub">Nothing watched. <a href="/configure?key={{.Key}}" data-busy="Loading Configure…">Open Configure</a> to choose workflows.</p>{{end}}
+{{else}}{{if not .Error}}<p class="sub">Nothing watched. <a href="/configure?key={{.Key}}" data-busy="Loading Workflows…">Choose workflows</a> to watch.</p>{{end}}
 {{end}}
 <script>
 (function () {
   // Filter the rows by text and by state. The view is kept through Refresh
-  // (saved when a form is sent, used once), like Configure's.
+  // (saved when a form is sent, used once), like the Workflows page's.
   var rows = Array.prototype.slice.call(document.querySelectorAll(".row[data-state]"));
   if (!rows.length) { return; }
   var input = document.getElementById("filter"), mode = "all";

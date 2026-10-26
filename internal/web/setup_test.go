@@ -22,6 +22,9 @@ func TestSetupShowsLogin(t *testing.T) {
 	if rec.Code != 200 || !strings.Contains(body, "Working:</b> signed in as octocat") {
 		t.Fatalf("code %d body %s", rec.Code, body)
 	}
+	if !strings.Contains(body, "<h1>Settings</h1>") || !strings.Contains(body, `<h2 id="repositories">Repositories</h2>`) {
+		t.Error("the page is Settings, with an anchor on Repositories")
+	}
 	if !strings.Contains(body, "No repository yet") || strings.Contains(body, `class="done"`) {
 		t.Error("with nothing set up, Setup asks for a repository and offers no Done")
 	}

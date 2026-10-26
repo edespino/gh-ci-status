@@ -393,7 +393,7 @@ func TestServeChecksAndFirstRunHint(t *testing.T) {
 	_, stop := startServe(t, e, "--no-open", "--port", "0")
 	stop()
 	out := e.out.String()
-	for _, want := range []string{"ok    GitHub CLI", "ok    GitHub API: signed in as octocat", "No repository set up yet", "Setup"} {
+	for _, want := range []string{"ok    GitHub CLI", "ok    GitHub API: signed in as octocat", "No repository set up yet", "Settings"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("serve output lacks %q:\n%s", want, out)
 		}
@@ -446,7 +446,7 @@ func TestStatusNothingWatchedHint(t *testing.T) {
 	e := newCLI(t, fakegithub.New(t))
 	watchIn(t, e)
 	if code := run(context.Background(), nil, e.d); code != 0 || e.out.String() != "nothing watched\n" ||
-		!strings.Contains(e.errOut.String(), "Configure") || !strings.Contains(e.errOut.String(), "gh ci-status serve") {
+		!strings.Contains(e.errOut.String(), "Workflows") || !strings.Contains(e.errOut.String(), "gh ci-status serve") {
 		t.Fatalf("exit %d out %q err %q", code, e.out.String(), e.errOut.String())
 	}
 }

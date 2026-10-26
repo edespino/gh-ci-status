@@ -298,7 +298,7 @@ func TestConfigurePageRemoveControls(t *testing.T) {
 
 func TestStatusNothingWatched(t *testing.T) {
 	html := statusHTML(t)
-	if !strings.Contains(html, "nothing watched") || !regexp.MustCompile(`Nothing watched\. <a href="/configure\?key=[^"]*"[^>]*>Open Configure</a>`).MatchString(html) {
+	if !strings.Contains(html, "nothing watched") || !regexp.MustCompile(`Nothing watched\. <a href="/configure\?key=[^"]*"[^>]*>Choose workflows</a> to watch\.`).MatchString(html) {
 		t.Fatalf("no empty state: %s", html)
 	}
 	var b bytes.Buffer
@@ -318,13 +318,37 @@ func TestConfigureDoneButton(t *testing.T) {
 	}
 }
 
-// Configure on the status page is a button with a gear icon and its label.
-func TestStatusConfigureButton(t *testing.T) {
-	tag := regexp.MustCompile(`<a [^>]*href="/configure\?key=[^"]*"[^>]*>(?s:.*?)</a>`).FindString(statusHTML(t, redRow()))
-	for _, want := range []string{`class="btn"`, "data-busy=", `<svg aria-hidden="true"`, "Configure</a>"} {
-		if !strings.Contains(tag, want) {
-			t.Errorf("Configure link %q lacks %s", tag, want)
+// The status page's header has Workflows (a checklist icon) and Settings
+// (the gear), as buttons with their labels.
+func TestStatusWorkflowsAndSettingsButtons(t *testing.T) {
+	html := statusHTML(t, redRow())
+	var gear, checklist bytes.Buffer
+	if err := templates.ExecuteTemplate(&gear, "icon-gear", nil); err != nil {
+		t.Fatal(err)
+	}
+	if err := templates.ExecuteTemplate(&checklist, "icon-checklist", nil); err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range []struct{ href, icon, label string }{
+		{`/configure\?key=`, checklist.String(), "Workflows</a>"},
+		{`/setup\?key=[0-9a-f]*"`, gear.String(), "Settings</a>"},
+	} {
+		tag := regexp.MustCompile(`<a [^>]*href="` + c.href + `[^>]*>(?s:.*?)</a>`).FindString(html)
+		for _, want := range []string{`class="btn"`, "data-busy=", c.icon, c.label} {
+			if !strings.Contains(tag, want) {
+				t.Errorf("link %q lacks %s", tag, want)
+			}
 		}
+	}
+	if strings.Contains(html, ">Configure<") || strings.Contains(html, ">Setup<") {
+		t.Error("the old names are still shown")
+	}
+}
+
+// Workflows' "+ Add repository" opens the Repositories section of Settings.
+func TestWorkflowsAddRepositoryLink(t *testing.T) {
+	if !strings.Contains(configureHTML(t), `<a href="/setup?key=`+testKey+`#repositories" data-busy="Loading Settings…">+ Add repository</a>`) {
+		t.Error("+ Add repository does not open Settings' Repositories section")
 	}
 }
 

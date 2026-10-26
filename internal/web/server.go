@@ -222,7 +222,7 @@ func (s *Server) readStatus(ctx context.Context) (p StatusPage, code int, setup 
 	p = StatusPage{Generated: localTime(s.now()), Key: s.key, Version: s.version}
 	cfg, _, err := cistatus.LoadConfig(s.dir)
 	if err != nil {
-		p.Summary, p.Error = "configuration unreadable", err.Error()+". Open Setup and add a repository to replace it."
+		p.Summary, p.Error = "configuration unreadable", err.Error()+". Open Settings and add a repository to replace it."
 		return p, http.StatusInternalServerError, false
 	}
 	if len(cfg.Repos) == 0 {
@@ -254,7 +254,7 @@ func (s *Server) sendSlack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !set {
-		http.Error(w, "Slack is not set up: add a webhook on the Setup page.\n\nNothing was sent.", http.StatusBadRequest)
+		http.Error(w, "Slack is not set up: add a webhook on the Settings page.\n\nNothing was sent.", http.StatusBadRequest)
 		return
 	}
 	p, code, setup := s.readStatus(r.Context())
@@ -309,7 +309,7 @@ func (s *Server) configureForm(w http.ResponseWriter, r *http.Request) {
 		repo = cfg.Repos[0].Repo
 	}
 	if !cfg.HasRepo(repo) {
-		http.Error(w, fmt.Sprintf("%q is not set up; add it on the Setup page", repo), http.StatusNotFound)
+		http.Error(w, fmt.Sprintf("%q is not set up; add it on the Settings page", repo), http.StatusNotFound)
 		return
 	}
 	p := ConfigurePage{Repo: repo, Repos: cfg.RepoNames(), Key: s.key, Version: s.version}
@@ -459,11 +459,11 @@ func (s *Server) change(w http.ResponseWriter, r *http.Request,
 	repo := r.PostForm.Get("repo")
 	cfg, _, err := cistatus.LoadConfig(s.dir)
 	if err != nil {
-		http.Error(w, err.Error()+"\n\nNothing was saved. Open Setup and add the repository again.", http.StatusConflict)
+		http.Error(w, err.Error()+"\n\nNothing was saved. Open Settings and add the repository again.", http.StatusConflict)
 		return
 	}
 	if !cfg.HasRepo(repo) {
-		http.Error(w, fmt.Sprintf("%q is not set up; add it on the Setup page.\n\nNothing was saved.", repo), http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf("%q is not set up; add it on the Settings page.\n\nNothing was saved.", repo), http.StatusBadRequest)
 		return
 	}
 	defaultBranch := func() (string, error) {

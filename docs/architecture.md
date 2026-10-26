@@ -10,7 +10,7 @@ with the user's GitHub CLI login and keeps its settings on the user's computer.
 |---|---|
 | `cistatus` (module root) | The library: GitHub client, setup checks, the saved configuration, the rules that decide a row, collection, and the JSON report. Everything a web page, a command line or an MCP server needs to give the same answers. |
 | `cmd/gh-ci-status` | The command: `gh ci-status`, `--json`, `serve` (and `serve --daemon`), `stop`, `add`, `check`, `--version`. |
-| `internal/web` | The local web server: status, Configure and Setup pages, the page key, and what Configure keeps between visits. |
+| `internal/web` | The local web server: the status, Workflows (`/configure`) and Settings (`/setup`) pages, the page key, and what the Workflows page keeps between visits. |
 | `internal/banner` | The logo: the wordmark for terminals, pages and the README image. |
 | `internal/fakegithub` | A fake GitHub REST API for tests. |
 
@@ -54,7 +54,7 @@ A row is decided by `Evaluate`:
 
 5. When GitHub reports the workflow as turned off (`disabled_manually`, `disabled_inactivity`
    or `disabled_fork`), the row is disabled instead: not red, no jobs read, its last run kept
-   for the link. Configure takes this from the workflow list it already read.
+   for the link. The Workflows page takes this from the workflow list it already read.
 
 Rows sort reds first (oldest red at the top), then unreadable, running, other, no runs, passing,
 disabled. The summary's "running" count and the status page's **Running** button count every
@@ -65,9 +65,9 @@ row with a run in progress, whatever its state.
 | Action | GitHub requests |
 |---|---|
 | Status page, `gh ci-status`, `--json` | Per workflow file: its name. Per watch: its runs on the branch. Per red row: the jobs of its newest finished run. At most 8 at a time. |
-| Configure, first visit or after Refresh | The repository, its workflow list (all pages) and two pages of recent runs, at the same time. Then one runs request per status dot, 6 at a time, from the page's script. |
-| Configure, later visits | None: the workflow list, recent runs and status dots are kept until Refresh. Failed reads are not kept. The status page replaces the kept status of each pair it reads. |
-| Setup page | The signed-in account (`/user`). |
+| Workflows page, first visit or after Refresh | The repository, its workflow list (all pages) and two pages of recent runs, at the same time. Then one runs request per status dot, 6 at a time, from the page's script. |
+| Workflows page, later visits | None: the workflow list, recent runs and status dots are kept until Refresh. Failed reads are not kept. The status page replaces the kept status of each pair it reads. |
+| Settings page | The signed-in account (`/user`). |
 | Adding a repository | The repository and its workflow list. |
 | `check` | The signed-in account, then per repository the repository and its workflow list. |
 | Send to Slack | The same as the status page, then one post to the Slack webhook. The status page that follows shows what was sent instead of reading again (once, within a minute). |
@@ -104,9 +104,9 @@ the path and status, never the token.
 1. `serve` and `check` run `CheckGH` (the GitHub CLI is on `PATH`), `CheckLogin` (it returns a
    token) and `CheckAPI` (the token reads the signed-in account), and print each result with
    what to do when it fails. `serve` stops when one fails.
-2. With no repository set up, the status page redirects to Setup, and `gh ci-status` prints how
+2. With no repository set up, the status page redirects to Settings, and `gh ci-status` prints how
    to add one and exits with code 2.
-3. Setup and `gh ci-status add` take `owner/name` or a GitHub address, and `CheckRepo` confirms
+3. Settings and `gh ci-status add` take `owner/name` or a GitHub address, and `CheckRepo` confirms
    that the login can read it and that it has workflows. The name is saved as GitHub spells it.
 
 ## Background server

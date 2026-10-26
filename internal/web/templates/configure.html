@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>gh-ci-status · configure</title>
+<title>gh-ci-status · workflows</title>
 <style>
 :root{--bg:#fafafa;--fg:#18181b;--muted:#71717a;--row:#fff;--chip:#e4e4e7;--bad:#dc2626;--badbg:#fef2f2;--ok:#16a34a;--run:#ca8a04;--none:#a1a1aa;--link:#1d4ed8;--btn:#e4e4e7;--warn:#b45309;--panel:#f4f4f5;--primary:#1d4ed8}
 @media (prefers-color-scheme: dark){:root{--bg:#18181b;--fg:#e4e4e7;--muted:#a1a1aa;--row:#27272a;--chip:#3f3f46;--badbg:#3f1d1d;--link:#93c5fd;--btn:#3f3f46;--warn:#fbbf24;--panel:#1f2937;--primary:#2563eb}}
@@ -57,16 +57,16 @@ nav.repos a.repo.on{outline:2px solid var(--link)}
 <body>
 <header>
 {{wordmark}}
-<h1>Configure</h1>
+<h1>Workflows</h1>
 <span class="sub">{{.Repo}} · default branch <b>{{.DefaultBranch}}</b> · changes save immediately</span>
-{{if .ReadAt}}<span class="read mono" title="Configure keeps what it read from GitHub until you press Refresh">read {{.ReadAt}}</span>
+{{if .ReadAt}}<span class="read mono" title="this page keeps what it read from GitHub until you press Refresh">read {{.ReadAt}}</span>
 <form class="inline" method="post" action="/configure/refresh?key={{.Key}}" data-busy="Reading GitHub…"><input type="hidden" name="repo" value="{{$.Repo}}"><button class="btn" type="submit">{{template "icon-refresh"}}Refresh</button></form>{{end}}
 <span id="progress-head" title="Reading statuses…"><span class="spin-sm"></span></span>
 <a class="done" href="/?key={{.Key}}" data-busy="Reading GitHub…" title="back to the status page">Done</a>
 </header>
 <nav class="repos">Repository:
-{{range .Repos}}<a class="repo{{if eq . $.Repo}} on{{end}}" href="/configure?key={{$.Key}}&amp;repo={{.}}" data-busy="Loading Configure…">{{.}}</a>
-{{end}}<a href="/setup?key={{.Key}}" data-busy="Loading Setup…">+ Add repository</a>
+{{range .Repos}}<a class="repo{{if eq . $.Repo}} on{{end}}" href="/configure?key={{$.Key}}&amp;repo={{.}}" data-busy="Loading Workflows…">{{.}}</a>
+{{end}}<a href="/setup?key={{.Key}}#repositories" data-busy="Loading Settings…">+ Add repository</a>
 </nav>
 {{if .Error}}<p class="error">{{.Error}}</p>{{end}}
 

@@ -63,7 +63,7 @@ failed, 2 a usage error or nothing set up yet.
 
 const defaultPort = 8723
 
-const notSetUp = "gh-ci-status: no repository set up yet. Run 'gh ci-status serve' and use the Setup page,\n" +
+const notSetUp = "gh-ci-status: no repository set up yet. Run 'gh ci-status serve' and use the Settings page,\n" +
 	"or run 'gh ci-status add OWNER/REPO'."
 
 // deps holds everything run touches outside the process, so tests can
@@ -160,7 +160,7 @@ func status(ctx context.Context, d deps, asJSON bool) int {
 		writeText(d.stdout, rows, len(cfg.Repos) > 1)
 	}
 	if len(rows) == 0 {
-		fmt.Fprintln(d.stderr, "gh-ci-status: no workflows watched yet. Run 'gh ci-status serve' and choose them on the Configure page.")
+		fmt.Fprintln(d.stderr, "gh-ci-status: no workflows watched yet. Run 'gh ci-status serve' and choose them on the Workflows page.")
 	}
 	for _, r := range rows {
 		if r.State == cistatus.Error {
@@ -213,7 +213,7 @@ func check(ctx context.Context, d deps) int {
 	}
 	if len(cfg.Repos) == 0 {
 		fmt.Fprintln(d.stdout, cistatus.Check{Name: "Repositories", Detail: "none set up yet",
-			Fix: "Run 'gh ci-status serve' and use the Setup page, or run 'gh ci-status add OWNER/REPO'"})
+			Fix: "Run 'gh ci-status serve' and use the Settings page, or run 'gh ci-status add OWNER/REPO'"})
 		return 1
 	}
 	code := 0
@@ -257,7 +257,7 @@ func add(ctx context.Context, args []string, d deps) int {
 		fmt.Fprintln(d.stderr, "gh-ci-status:", err)
 		return 1
 	}
-	fmt.Fprintf(d.stdout, "Added %s. Next: run 'gh ci-status serve' and choose its workflows on the Configure page.\n", name)
+	fmt.Fprintf(d.stdout, "Added %s. Next: run 'gh ci-status serve' and choose its workflows on the Workflows page.\n", name)
 	return 0
 }
 
@@ -329,7 +329,7 @@ func serve(ctx context.Context, args []string, d deps) int {
 	go func() { served <- srv.Serve(ln) }()
 
 	if cfg, _, err := cistatus.LoadConfig(d.dir); err == nil && len(cfg.Repos) == 0 {
-		fmt.Fprintln(d.stdout, "No repository set up yet: the page opens on Setup.")
+		fmt.Fprintln(d.stdout, "No repository set up yet: the page opens on Settings.")
 	}
 	fmt.Fprintf(d.stdout, "gh-ci-status: serving %s\nBookmark that address; press Ctrl-C to stop.\n", url)
 	if !*noOpen {

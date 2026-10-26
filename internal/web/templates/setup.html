@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>gh-ci-status · setup</title>
+<title>gh-ci-status · settings</title>
 <style>
 :root{--bg:#fafafa;--fg:#18181b;--muted:#71717a;--row:#fff;--chip:#e4e4e7;--bad:#dc2626;--badbg:#fef2f2;--ok:#16a34a;--okbg:#f0fdf4;--link:#1d4ed8;--btn:#e4e4e7;--primary:#1d4ed8}
 @media (prefers-color-scheme: dark){:root{--bg:#18181b;--fg:#e4e4e7;--muted:#a1a1aa;--row:#27272a;--chip:#3f3f46;--badbg:#3f1d1d;--okbg:#14321f;--link:#93c5fd;--btn:#3f3f46;--primary:#2563eb}}
@@ -40,8 +40,8 @@ form.slack button{grid-column:2;justify-self:start}
 <body>
 <header>
 {{wordmark}}
-<h1>Setup</h1>
-<span class="sub">which repositories to watch</span>
+<h1>Settings</h1>
+<span class="sub">GitHub login, repositories and Slack</span>
 {{if .Repos}}<a class="done" href="/?key={{.Key}}" data-busy="Reading GitHub…" title="back to the status page">Done</a>{{end}}
 </header>
 {{if .Error}}<p class="error">{{.Error}}</p>{{end}}
@@ -49,9 +49,9 @@ form.slack button{grid-column:2;justify-self:start}
 <h2>GitHub login</h2>
 <p class="check{{if .Login.OK}} ok{{end}}" id="login"><b>{{if .Login.OK}}Working:{{else}}Not working:{{end}}</b> {{.Login.Detail}}{{with .Login.Fix}}<br><span class="fix">{{.}}</span>{{end}}</p>
 
-<h2>Repositories</h2>
+<h2 id="repositories">Repositories</h2>
 {{range .Repos}}<div class="repo-item"><span class="mono">{{.}}</span>
-<a href="/configure?key={{$.Key}}&amp;repo={{.}}" data-busy="Loading Configure…">Configure</a>
+<a href="/configure?key={{$.Key}}&amp;repo={{.}}" data-busy="Loading Workflows…">Workflows</a>
 <form class="inline" method="post" action="/setup/remove?key={{$.Key}}" data-busy="Saving…" data-confirm="Stop watching {{.}} and forget its workflows?"><input type="hidden" name="repo" value="{{.}}"><button type="submit">Remove</button></form>
 </div>
 {{else}}<p class="sub">No repository yet. Add the first one below.</p>
@@ -61,7 +61,7 @@ form.slack button{grid-column:2;justify-self:start}
 <input id="repo" name="repo" type="text" placeholder="owner/name" value="{{.Repo}}" required autofocus spellcheck="false" autocomplete="off">
 <button type="submit" class="primary">Add</button>
 </form>
-<p class="hint">Type owner/name or paste the repository's GitHub address. gh-ci-status checks that your GitHub login can read it and that it has GitHub Actions workflows, then opens Configure so you can choose which workflows to watch.</p>
+<p class="hint">Type owner/name or paste the repository's GitHub address. gh-ci-status checks that your GitHub login can read it and that it has GitHub Actions workflows, then opens Workflows so you can choose which ones to watch.</p>
 {{with .Problem}}<p class="error" id="problem"><b>{{.Name}}:</b> {{.Detail}}{{with .Fix}}<br>{{.}}{{end}}</p>{{end}}
 
 <h2 id="slack">Slack</h2>
