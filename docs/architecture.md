@@ -8,10 +8,10 @@ with the user's GitHub CLI login and keeps its settings on the user's computer.
 
 | Package | Role |
 |---|---|
-| `cistatus` (module root) | The library: GitHub client, setup checks, the saved configuration, the rules that decide a row, collection, and the JSON report. Everything a web page, a command line or an MCP server needs to give the same answers. |
+| `cistatus` (module root) | The library: GitHub client, setup checks, the saved configuration, the rules that decide a row, collection, the JSON report, the Slack message and its post, and the source link. Everything a web page, a command line or an MCP server needs to give the same answers. |
 | `cmd/gh-ci-status` | The command: `gh ci-status`, `--json`, `serve` (and `serve --daemon`), `stop`, `add`, `check`, `--version`. |
 | `internal/web` | The local web server: the status, Workflows (`/configure`) and Settings (`/setup`) pages, the page key, and what the Workflows page keeps between visits. |
-| `internal/banner` | The logo: the wordmark for terminals, pages and the README image. |
+| `internal/banner` | The logo: the wordmark for terminals, pages and the README image, and the square icon (`assets/icon.svg`, `assets/icon.png`). |
 | `internal/fakegithub` | A fake GitHub REST API for tests. |
 
 ```mermaid

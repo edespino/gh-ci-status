@@ -20,5 +20,10 @@ computer. The design keeps both safe:
 - Pages load nothing from other sites and set a strict Content-Security-Policy and
   `Referrer-Policy: no-referrer`.
 - gh-ci-status never writes to GitHub.
+- The Slack webhook for Send to Slack is a secret too. It is accepted only as a
+  `https://hooks.slack.com/services/...` address, kept in `slack.json` (readable only by the
+  user, refused when others can read it), never shown, logged or put in an error, and posted to
+  only when the user presses Send to Slack, without following redirects. That post is the only
+  thing gh-ci-status sends anywhere.
 
 If the page address leaks, `gh ci-status serve --new-key` replaces the key.

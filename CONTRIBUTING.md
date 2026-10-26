@@ -36,7 +36,8 @@ gh-ci-status follows [Semantic Versioning](https://semver.org) with a `v` prefix
   changing or removing them needs a new major version; adding is a minor release.
 - A tag with a `-` (`v0.2.0-rc.1`) makes a prerelease.
 
-To release, tag a commit on `main` and push the tag: `git tag v0.1.0 && git push origin v0.1.0`.
+To release, tag a commit on `main` whose CI passed, and push the tag:
+`git tag -a v0.5.0 -m "gh-ci-status 0.5.0" && git push origin v0.5.0`.
 The release workflow builds the binaries with the Go version in `go.mod`, which stamps the tag
 into them, and attaches them to a GitHub release with build attestations.
 `gh ci-status --version`, the footer of every page and the JSON report's `version` then show it.
