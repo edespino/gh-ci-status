@@ -3,8 +3,11 @@
 package banner
 
 import (
+	"image/png"
+	"math"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -81,5 +84,69 @@ func TestSVGGreyPrefix(t *testing.T) {
 		if !strings.Contains(s, c.x1) || !strings.Contains(s, c.label) {
 			t.Errorf("tagged=%v: gradient start or label wrong:\n%.300s", c.tagged, s)
 		}
+	}
+}
+
+// icon is the square image drawn from the wordmark; icon.png is made from it
+// with 'make icon'. Regenerate icon.svg with 'make banner'.
+const (
+	icon    = "../../assets/icon.svg"
+	iconPNG = "../../assets/icon.png"
+)
+
+// The icon file matches the wordmark.
+func TestIconSVG(t *testing.T) {
+	want := Icon()
+	if os.Getenv("UPDATE_BANNER") != "" {
+		if err := os.WriteFile(icon, []byte(want), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	got, err := os.ReadFile(icon)
+	if err != nil || string(got) != want {
+		t.Fatalf("assets/icon.svg is missing or out of date (%v); regenerate with make banner", err)
+	}
+}
+
+// The icon is a 512 by 512 dark square with "ci" from the wordmark in the
+// red-to-green gradient, centred.
+func TestIcon(t *testing.T) {
+	s := Icon()
+	for _, want := range []string{`width="512" height="512" viewBox="0 0 512 512"`, `<rect width="512" height="512" fill="#18181b"/>`,
+		`stroke="url(#ci-status-red-to-green)"`, `aria-label="gh-ci-status"`} {
+		if !strings.Contains(s, want) {
+			t.Errorf("icon lacks %s", want)
+		}
+	}
+	m := regexp.MustCompile(`translate\(([\d.]+) ([\d.]+)\) scale\(([\d.]+)\)`).FindStringSubmatch(s)
+	if m == nil {
+		t.Fatalf("icon has no placement: %s", s)
+	}
+	tx, _ := strconv.ParseFloat(m[1], 64)
+	ty, _ := strconv.ParseFloat(m[2], 64)
+	k, _ := strconv.ParseFloat(m[3], 64)
+	// "ci" spans x 7 to 56 and y 11 to 55 in wordmark cells of 14 by 22.
+	if cx, cy := tx+(7+56)/2.0*k, ty+(11+55)/2.0*k; math.Abs(cx-256) > 0.5 || math.Abs(cy-256) > 0.5 {
+		t.Errorf("letters centred at %.1f, %.1f, want 256, 256", cx, cy)
+	}
+	if w := 49 * k; w < 280 || w > 320 {
+		t.Errorf("letters %.0f pixels wide, want about 300", w)
+	}
+	if strings.Count(s, "M") != strings.Count(strokes(prefix, prefix+4, 0, 0, 14, 22).d, "M") {
+		t.Error("the icon draws more than the letters ci")
+	}
+}
+
+// icon.png is the icon at 1024 by 1024, the size Slack and others accept
+// (512 to 2000 pixels).
+func TestIconPNG(t *testing.T) {
+	f, err := os.Open(iconPNG)
+	if err != nil {
+		t.Fatalf("%v; make it with make icon", err)
+	}
+	defer f.Close()
+	cfg, err := png.DecodeConfig(f)
+	if err != nil || cfg.Width != 1024 || cfg.Height != 1024 {
+		t.Fatalf("icon.png: %v %dx%d, want a 1024x1024 PNG", err, cfg.Width, cfg.Height)
 	}
 }

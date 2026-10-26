@@ -114,7 +114,9 @@ The status page can post the status to one Slack channel, when you press **Send 
 1. In Slack, open <https://api.slack.com/apps>, create an app (or open one), choose
    **Incoming Webhooks**, turn on **Activate Incoming Webhooks**, press **Add New Webhook to
    Workspace**, pick the channel and copy the address
-   (`https://hooks.slack.com/services/...`).
+   (`https://hooks.slack.com/services/...`). If Slack asks for a permission first, add
+   `incoming-webhook` only. For the app's icon, on its **Basic Information** page, you can use
+   [`assets/icon.png`](assets/icon.png) (1024 by 1024).
 2. On the **Settings** page, paste it under **Slack**, with the name to show for it (for example
    `#ci-status`), and press **Save**.
 3. **Send to Slack** on the status page now posts (until a webhook is saved, it opens the Slack
@@ -285,7 +287,8 @@ cd gh-ci-status
 make build                  # builds ./gh-ci-status
 gh extension install .      # run your build as 'gh ci-status'
 make check                  # gofmt, go vet, and the tests with the race detector (what CI runs)
-make banner                 # regenerate assets/banner.svg after changing the wordmark
+make banner                 # regenerate assets/banner.svg and assets/icon.svg after changing the wordmark
+make icon                   # also make assets/icon.png from icon.svg (needs Chrome or Chromium)
 ```
 
 The GitHub CLI allows one extension per command, so remove the released one before installing

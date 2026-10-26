@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="gh-ci-status">
+<defs><linearGradient id="ci-status-red-to-green" gradientUnits="userSpaceOnUse" x1="7" y1="0" x2="56" y2="0">
+<stop offset="0" stop-color="#dc2626"/><stop offset="0.5" stop-color="#ca8a04"/><stop offset="1" stop-color="#16a34a"/>
+</linearGradient></defs>
+<rect width="512" height="512" fill="#18181b"/>
+<g transform="translate(56.71 47.22) scale(6.3265)"><path d="M7 11L14 11M7 11L7 22M21 11L14 11M21 11L28 11M35 11L28 11M35 11L35 22M49 11L42 11M49 11L56 11M49 11L49 22M7 33L7 22M7 33L7 44M49 33L49 22M49 33L49 44M7 55L7 44M7 55L14 55M21 55L14 55M21 55L28 55M35 55L35 44M35 55L28 55M49 55L42 55M49 55L56 55M49 55L49 44" fill="none" stroke="url(#ci-status-red-to-green)" stroke-width="5" stroke-linecap="square"/></g>
+</svg>

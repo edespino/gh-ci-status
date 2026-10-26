@@ -7,6 +7,7 @@ package banner
 
 import (
 	"fmt"
+	"math"
 	"strings"
 )
 
@@ -79,38 +80,10 @@ func SVG(tagged bool) string {
 	if tagged {
 		pad, stroke, greyStroke = 12, 3, "#888888"
 	}
-	edges := map[rune]string{
-		'─': "lr", '│': "ud", '┌': "rd", '┐': "ld", '└': "ur", '┘': "ul",
-		'┬': "lrd", '┴': "lru", '├': "udr", '┤': "udl",
-	}
 	cols := len([]rune(Wordmark[0]))
 	width := 2*pad + float64(cols)*w
 	height := 2*pad + float64(len(Wordmark))*h
-	var gh, rest strings.Builder
-	for row, line := range Wordmark {
-		for col, r := range []rune(line) {
-			d := &rest
-			if col < prefix {
-				d = &gh
-			}
-			x0, y0 := pad+float64(col)*w, pad+float64(row)*h
-			cx, cy := x0+w/2, y0+h/2
-			for _, e := range edges[r] {
-				x, y := cx, cy
-				switch e {
-				case 'l':
-					x = x0
-				case 'r':
-					x = x0 + w
-				case 'u':
-					y = y0
-				case 'd':
-					y = y0 + h
-				}
-				fmt.Fprintf(d, "M%g %gL%g %g", cx, cy, x, y)
-			}
-		}
-	}
+	gh, rest := strokes(0, prefix, pad, pad, w, h), strokes(prefix, cols, pad+prefix*w, pad, w, h)
 	const markHeight = 22.0
 	open := fmt.Sprintf(`<svg class="wordmark" xmlns="http://www.w3.org/2000/svg" width="%.0f" height="%g" viewBox="0 0 %g %g" role="img" aria-label="gh-ci-status">`,
 		markHeight*width/height, markHeight, width, height)
@@ -127,5 +100,66 @@ func SVG(tagged bool) string {
 </linearGradient></defs>
 <path d="%s" fill="none" stroke="%s" stroke-width="%g" stroke-linecap="square"/>
 <path d="%s" fill="none" stroke="url(#ci-status-red-to-green)" stroke-width="%g" stroke-linecap="square"/>
-`, pad+prefix*w, width-pad, gh.String(), greyStroke, stroke, rest.String(), stroke) + text + "</svg>\n"
+`, pad+prefix*w, width-pad, gh.d, greyStroke, stroke, rest.d, stroke) + text + "</svg>\n"
+}
+
+// drawing is SVG path data and the box its lines span.
+type drawing struct {
+	d                      string
+	minX, minY, maxX, maxY float64
+}
+
+// strokes draws the wordmark's columns from to to (exclusive) as lines, in
+// cells of w by h, the first column's left edge at x0 and the top at y0.
+func strokes(from, to int, x0, y0, w, h float64) drawing {
+	edges := map[rune]string{
+		'─': "lr", '│': "ud", '┌': "rd", '┐': "ld", '└': "ur", '┘': "ul",
+		'┬': "lrd", '┴': "lru", '├': "udr", '┤': "udl",
+	}
+	dr := drawing{minX: math.Inf(1), minY: math.Inf(1), maxX: math.Inf(-1), maxY: math.Inf(-1)}
+	var b strings.Builder
+	for row, line := range Wordmark {
+		runes := []rune(line)
+		for col := from; col < to; col++ {
+			left, top := x0+float64(col-from)*w, y0+float64(row)*h
+			cx, cy := left+w/2, top+h/2
+			for _, e := range edges[runes[col]] {
+				x, y := cx, cy
+				switch e {
+				case 'l':
+					x = left
+				case 'r':
+					x = left + w
+				case 'u':
+					y = top
+				case 'd':
+					y = top + h
+				}
+				fmt.Fprintf(&b, "M%g %gL%g %g", cx, cy, x, y)
+				dr.minX, dr.maxX = math.Min(dr.minX, math.Min(cx, x)), math.Max(dr.maxX, math.Max(cx, x))
+				dr.minY, dr.maxY = math.Min(dr.minY, math.Min(cy, y)), math.Max(dr.maxY, math.Max(cy, y))
+			}
+		}
+	}
+	dr.d = b.String()
+	return dr
+}
+
+// Icon is a square image for places that want one, such as a Slack app
+// (assets/icon.svg, and assets/icon.png made from it): "ci" from the
+// wordmark, red to green, centred on a dark square of 512 by 512.
+func Icon() string {
+	const size, letters = 512.0, 310.0 // the letters' larger side, in pixels
+	ci := strokes(prefix, prefix+4, 0, 0, 14, 22)
+	k := letters / math.Max(ci.maxX-ci.minX, ci.maxY-ci.minY)
+	tx := size/2 - (ci.minX+ci.maxX)/2*k
+	ty := size/2 - (ci.minY+ci.maxY)/2*k
+	return fmt.Sprintf(`<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="gh-ci-status">
+<defs><linearGradient id="ci-status-red-to-green" gradientUnits="userSpaceOnUse" x1="%g" y1="0" x2="%g" y2="0">
+<stop offset="0" stop-color="#dc2626"/><stop offset="0.5" stop-color="#ca8a04"/><stop offset="1" stop-color="#16a34a"/>
+</linearGradient></defs>
+<rect width="512" height="512" fill="#18181b"/>
+<g transform="translate(%.2f %.2f) scale(%.4f)"><path d="%s" fill="none" stroke="url(#ci-status-red-to-green)" stroke-width="5" stroke-linecap="square"/></g>
+</svg>
+`, ci.minX, ci.maxX, tx, ty, k, ci.d)
 }

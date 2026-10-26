@@ -11,7 +11,8 @@ make check                       # gofmt check, go vet, go test -race (what CI r
 go test -count=1 ./...           # tests
 go test -run TestName ./internal/web
 make build && ./gh-ci-status serve --port 8724 --no-open   # or: gh extension install . && gh ci-status ...
-make banner                      # regenerate assets/banner.svg after changing the wordmark
+make banner                      # regenerate assets/banner.svg and assets/icon.svg after changing the wordmark
+make icon                        # also assets/icon.png (1024x1024), drawn by Chrome from icon.svg
 ```
 
 Try changes against a scratch configuration so a real one is not touched:
@@ -53,5 +54,5 @@ Try changes against a scratch configuration so a real one is not touched:
   `PATH`, or the macOS app) and skip without it.
 - The daemon tests run this test binary as the background server: `TestMain` runs
   `helperMain` when `GH_CI_STATUS_HELPER=1`. They stop every server their `serve.log` names.
-- `TestBannerSVG` fails when `assets/banner.svg` no longer matches the wordmark; run
-  `make banner`.
+- `TestBannerSVG` and `TestIconSVG` fail when `assets/banner.svg` or `assets/icon.svg` no
+  longer match the wordmark; run `make banner` (and `make icon` for `assets/icon.png`).
