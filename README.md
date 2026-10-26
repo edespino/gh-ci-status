@@ -43,6 +43,8 @@ gh extension install edespino/gh-ci-status
 gh ci-status serve
 ```
 
+The server runs in that terminal until you press Ctrl-C.
+
 On the first run:
 
 1. gh-ci-status checks that the GitHub CLI is installed, that you are logged in, and that it
@@ -70,7 +72,16 @@ gh ci-status                            # print the status
 gh ci-status --json                     # the same as JSON
 ```
 
-To build it from source instead, see [Development](#development).
+Update, remove or check the version:
+
+```shell
+gh extension upgrade ci-status     # get the latest release
+gh ci-status --version             # which version you are running
+gh extension remove ci-status      # uninstall
+```
+
+Removing the extension keeps your settings in `~/.config/gh-ci-status`; delete that folder to
+remove them too. To build it from source instead, see [Development](#development).
 
 ## Commands
 
@@ -215,6 +226,15 @@ make build                  # builds ./gh-ci-status
 gh extension install .      # run your build as 'gh ci-status'
 make check                  # gofmt, go vet, and the tests with the race detector (what CI runs)
 make banner                 # regenerate assets/banner.svg after changing the wordmark
+```
+
+The GitHub CLI allows one extension per command, so remove the released one before installing
+your build (`gh extension install .` reports "there is already an installed extension" otherwise).
+Your build uses the same settings as the release. To switch back to the release:
+
+```shell
+gh extension remove ci-status
+gh extension install edespino/gh-ci-status
 ```
 
 The standard library is the only dependency. Tests use a fake GitHub API
