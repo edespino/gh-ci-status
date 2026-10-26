@@ -91,6 +91,9 @@ the path and status, never the token.
 - The log records method, path and status, never the query.
 - `POST /shutdown` ends the server. Like every route it needs the key, so only `gh ci-status
   stop`, which reads the key from `key`, or something else that has the key can stop it.
+- `POST /settings/confirm` turns the questions before confirmed actions off (`ask=off`) or
+  on, in `prefs.json`; pages then carry `data-skip-confirm` on their body and the script
+  submits those forms without asking. A missing or unreadable `prefs.json` means asking.
 - `POST /slack/save`, `/slack/remove` and `/slack/send` set, forget and use the Slack webhook.
   Only `https://hooks.slack.com/services/...` (or GovSlack's `hooks.slack-gov.com`) addresses
   are accepted, so the server posts nowhere else; the address is kept in `slack.json` (mode

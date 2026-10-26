@@ -84,8 +84,9 @@ On the first run:
 5. **Done** shows the status page. Press **Refresh** whenever you want it read again. With many
    rows, the filter box and the state buttons (**Failing**, **Passing**, **Disabled** and so on, with
    counts) narrow the list; the filter stays through **Refresh**. **Workflows** (the checklist
-   icon) changes what you watch; **Settings** (the gear) has the GitHub login, the repositories
-   and Slack.
+   icon) changes what you watch; **Settings** (the gear) has the GitHub login, the repositories,
+   Slack, and **Confirmations**: whether Remove, Remove all, Watch N shown and Send to Slack ask
+   first (they do until you choose **Don't ask**).
 
 From the terminal instead:
 
@@ -243,6 +244,7 @@ If someone else gets your address, start with `gh ci-status serve --new-key`. Se
 | `~/.config/gh-ci-status/key` | The key in your bookmarked address. |
 | `~/.config/gh-ci-status/serve.log` | What a background server (`serve --daemon`) prints, address included. |
 | `~/.config/gh-ci-status/slack.json` | The Slack webhook for Send to Slack and its name, when you set one. |
+| `~/.config/gh-ci-status/prefs.json` | The pages' own settings, such as whether to ask before Remove. |
 
 `$XDG_CONFIG_HOME/gh-ci-status/` is used instead when `XDG_CONFIG_HOME` is set. These files are
 created with mode `0600` in a `0700` directory. There are no built-in defaults: a new user

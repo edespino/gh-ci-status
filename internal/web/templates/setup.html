@@ -37,7 +37,7 @@ form.slack button{grid-column:2;justify-self:start}
 .error{background:var(--badbg);border-left:8px solid var(--bad);padding:8px 12px;border-radius:4px}
 </style>
 </head>
-<body>
+<body{{if .SkipConfirm}} data-skip-confirm{{end}}>
 <header>
 {{wordmark}}
 <h1>Settings</h1>
@@ -77,6 +77,13 @@ form.slack button{grid-column:2;justify-self:start}
 </form>
 <p class="hint">Optional. With a webhook, the status page has a <b>Send to Slack</b> button that posts the status to that channel. To make one, open <a href="https://api.slack.com/apps" rel="noreferrer">https://api.slack.com/apps</a>, create an app (or open one), choose <b>Incoming Webhooks</b>, turn on <b>Activate Incoming Webhooks</b>, press <b>Add New Webhook to Workspace</b>, pick the channel and copy the address. It is kept in slack.json in the settings folder, readable only by you, and is not shown again.</p>
 {{end}}{{with .SlackProblem}}<p class="error" id="slack-problem">{{.}}</p>{{end}}
+
+<h2 id="confirm">Confirmations</h2>
+<form method="post" action="/settings/confirm?key={{.Key}}" data-busy="Saving…">
+<div class="repo-item"><span class="grow">{{if .SkipConfirm}}Remove, Remove all, Watch N shown and Send to Slack run without asking.{{else}}Remove, Remove all, Watch N shown and Send to Slack ask before they act.{{end}}</span>
+<input type="hidden" name="ask" value="{{if .SkipConfirm}}on{{else}}off{{end}}"><button type="submit">{{if .SkipConfirm}}Ask first{{else}}Don't ask{{end}}</button></div>
+</form>
+{{with .PrefsProblem}}<p class="error" id="prefs-problem">{{.}}</p>{{end}}
 {{template "footer" .}}
 {{template "busy" .}}
 </body>

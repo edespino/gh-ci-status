@@ -104,6 +104,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /slack/save", s.saveSlack)
 	mux.HandleFunc("POST /slack/remove", s.removeSlack)
 	mux.HandleFunc("POST /slack/send", s.sendSlack)
+	mux.HandleFunc("POST /settings/confirm", s.setConfirm)
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		_, _ = io.WriteString(w, "ok")
@@ -213,6 +214,7 @@ func (s *Server) status(w http.ResponseWriter, r *http.Request) {
 			p.Slack = st.Label
 		}
 	}
+	p.SkipConfirm = s.skipConfirm()
 	s.page(w, code, func(out io.Writer) error { return renderStatus(out, p) })
 }
 
@@ -312,7 +314,7 @@ func (s *Server) configureForm(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf("%q is not set up; add it on the Settings page", repo), http.StatusNotFound)
 		return
 	}
-	p := ConfigurePage{Repo: repo, Repos: cfg.RepoNames(), Key: s.key, Version: s.version}
+	p := ConfigurePage{Repo: repo, Repos: cfg.RepoNames(), Key: s.key, Version: s.version, SkipConfirm: s.skipConfirm()}
 	k := s.keptFor(repo)
 	l := k.listing()
 	if l == nil {

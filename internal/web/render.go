@@ -45,6 +45,7 @@ type StatusPage struct {
 	Slack              string // where Send to Slack posts; "" hides the button
 	Notice             string // the outcome of Send to Slack
 	NoticeBad          bool
+	SkipConfirm        bool // confirmed actions run without asking
 }
 
 // MultiRepo is true when rows need their repository named.
@@ -96,6 +97,7 @@ type ConfigurePage struct {
 	Watching      []WatchItem
 	Items         []ConfigureItem
 	Version       string // shown in the footer
+	SkipConfirm   bool   // confirmed actions run without asking
 }
 
 func renderStatus(w io.Writer, p StatusPage) error {

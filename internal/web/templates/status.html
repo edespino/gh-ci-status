@@ -41,7 +41,7 @@ a{color:var(--link)}.gap{height:12px}
 @media (max-width:700px){.row{grid-template-columns:1fr}}
 </style>
 </head>
-<body>
+<body{{if .SkipConfirm}} data-skip-confirm{{end}}>
 <header>
 <h1>{{wordmark}}</h1>
 <p class="sub">{{with .RepoList}}{{.}} · {{end}}{{.Summary}} · generated {{.Generated}}</p>

@@ -25,6 +25,8 @@ type SetupPage struct {
 	Slack        string
 	SlackLabel   string // what was typed, shown again after a failed save
 	SlackProblem string
+	SkipConfirm  bool   // confirmed actions run without asking
+	PrefsProblem string // prefs.json could not be read
 }
 
 func (s *Server) setupPage(w http.ResponseWriter, r *http.Request) {
@@ -35,6 +37,11 @@ func (s *Server) setupPage(w http.ResponseWriter, r *http.Request) {
 // setting, and renders it.
 func (s *Server) renderSetup(w http.ResponseWriter, r *http.Request, code int, p SetupPage) {
 	p.Key, p.Version = s.key, s.version
+	if prefs, err := loadPrefs(s.dir); err != nil {
+		p.PrefsProblem = err.Error()
+	} else {
+		p.SkipConfirm = prefs.SkipConfirm
+	}
 	if st, set, err := cistatus.LoadSlack(s.dir); err != nil {
 		p.SlackProblem = err.Error()
 	} else if set {

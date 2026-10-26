@@ -11,14 +11,15 @@
 (function () {
   // Same-site actions wait on GitHub before the next page arrives; show that
   // something is happening and stop double submits. A form with data-confirm
-  // asks first and does nothing when the answer is no.
+  // asks first and does nothing when the answer is no, unless Settings turned
+  // the questions off (data-skip-confirm on the body).
   function busy(text) {
     document.getElementById("busy-text").textContent = text || "Reading GitHub…";
     document.getElementById("busy").hidden = false;
   }
   document.addEventListener("submit", function (e) {
     var ask = e.target.dataset.confirm;
-    if (ask && !window.confirm(ask)) {
+    if (ask && !document.body.hasAttribute("data-skip-confirm") && !window.confirm(ask)) {
       e.preventDefault();
       return;
     }

@@ -138,6 +138,34 @@ document.body.setAttribute("data-result", out.join(","));
 	}
 }
 
+// With the questions turned off (the page's body carries
+// data-skip-confirm), a data-confirm form is sent without asking.
+func TestConfirmSkipped(t *testing.T) {
+	chrome(t)
+	var busy bytes.Buffer
+	if err := templates.ExecuteTemplate(&busy, "busy", nil); err != nil {
+		t.Fatal(err)
+	}
+	page := `<!doctype html><html><body data-skip-confirm>
+<form id="f" method="post" action="/x" data-confirm="Sure?" data-busy="Saving…"><button type="submit">go</button></form>` + busy.String() + `
+<script>
+var out = [];
+document.addEventListener("submit", function (e) { out.push(e.defaultPrevented ? "cancelled" : "sent"); e.preventDefault(); });
+window.confirm = function () { out.push("asked"); return false; };
+document.getElementById("f").requestSubmit();
+out.push(document.getElementById("busy").hidden ? "idle" : "busy");
+document.body.setAttribute("data-result", out.join(","));
+</script></body></html>`
+	path := filepath.Join(t.TempDir(), "skip.html")
+	if err := os.WriteFile(path, []byte(page), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	m := regexp.MustCompile(`data-result="([^"]*)"`).FindStringSubmatch(chromeDOM(t, "file://"+path))
+	if m == nil || m[1] != "sent,busy" {
+		t.Fatalf("result = %v, want sent,busy", m)
+	}
+}
+
 // TestDoneVisibleAfterScroll renders a long Configure page, scrolls to the
 // bottom in headless Chrome and checks that Done is still on screen and that
 // the filter bar sits below the header rather than over it.
