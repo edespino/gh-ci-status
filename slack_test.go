@@ -252,7 +252,7 @@ func TestSlackMessage(t *testing.T) {
 		"• [Docs](" + hist("d.yml", "main") + ")",
 		"*⚪ Disabled (1)*",
 		"• [Old](" + hist("old.yml", "main") + ")",
-		"Oct 24, 5:00 AM PDT · gh-ci-status v0.4.0",
+		"Oct 24, 5:00 AM PDT · gh-ci-status v0.4.0 · <https://github.com/edespino/gh-ci-status/tree/v0.4.0|source>",
 	}, "\n")
 	if got != want {
 		t.Errorf("message:\n%s\n\nwant:\n%s", got, want)

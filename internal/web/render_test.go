@@ -473,13 +473,14 @@ func TestPagesHaveFooter(t *testing.T) {
 	}
 	for name, page := range map[string]string{"configure": cfg.String(), "setup": setup.String(), "status": status.String()} {
 		footer := regexp.MustCompile(`(?s)<footer>.*?</footer>`).FindString(page)
-		for _, want := range []string{"gh-ci-status v9.9.9", `href="https://github.com/edespino/gh-ci-status"`, `href="https://github.com/edespino/gh-ci-status/issues"`} {
+		for _, want := range []string{"gh-ci-status v9.9.9", `href="https://github.com/edespino/gh-ci-status/tree/v9.9.9">source</a>`, `href="https://github.com/edespino/gh-ci-status/issues"`} {
 			if !strings.Contains(footer, want) {
 				t.Errorf("%s footer lacks %s: %q", name, want, footer)
 			}
 		}
 	}
-	if footer := regexp.MustCompile(`(?s)<footer>.*?</footer>`).FindString(statusHTML(t)); !strings.Contains(footer, "gh-ci-status ·") {
+	if footer := regexp.MustCompile(`(?s)<footer>.*?</footer>`).FindString(statusHTML(t)); !strings.Contains(footer, "gh-ci-status ·") ||
+		!strings.Contains(footer, `href="https://github.com/edespino/gh-ci-status">source</a>`) {
 		t.Errorf("without a version the footer still names the project: %q", footer)
 	}
 }

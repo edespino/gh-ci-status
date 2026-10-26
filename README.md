@@ -125,7 +125,8 @@ The message has the summary as its heading and the repository under it (with the
 every workflow is on the same one), then a list per group, one item per workflow: 🔴 Failing,
 ⚪ Unreadable, Other, 🟢 Passing and ⚪ Disabled. A run in progress is marked ⏳ running or
 🕒 waiting. Under a failing workflow, indented: its failed step, the runs since the last passing
-one and any run in progress. A group lists up to 40 workflows and counts the rest. Links go to GitHub; the page's
+one and any run in progress. A group lists up to 40 workflows and counts the rest. The last
+line says when it was sent and by which version, with a link to that version's source. Links go to GitHub; the page's
 own address is never sent. The webhook address is a secret: it is kept in `slack.json`, readable
 only by you, never shown again, logged or sent anywhere but Slack. **Remove** on Settings forgets
 it.

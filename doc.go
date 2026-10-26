@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // Package cistatus reports the current state of chosen GitHub Actions
-// workflows on chosen branches: what is red, since when, where it fails, and
-// when it was last green.
+// workflows on chosen branches: what is failing, since when, where it fails,
+// and when it last passed.
 //
 // It is the library behind the gh-ci-status command and its local web page, and
 // is meant for other programs too, such as an MCP server. It only reads
-// GitHub, with a token from the GitHub CLI (GHToken) or any other source.
+// GitHub, with a token from the GitHub CLI (GHToken) or any other source; the
+// one thing it sends is a status message to a Slack webhook (PostSlack).
 //
 // A typical use:
 //

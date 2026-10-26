@@ -292,7 +292,8 @@ func SlackMessage(rep Report, loc *time.Location) ([]byte, error) {
 	if rep.Version != "" {
 		footer += " " + rep.Version
 	}
-	blocks = append(blocks, slackBlock{Type: "context", Elements: []slackElem{{Type: "mrkdwn", Text: slackEscape.Replace(footer)}}})
+	footer = slackEscape.Replace(footer) + " · <" + SourceLink(rep.Version) + "|source>"
+	blocks = append(blocks, slackBlock{Type: "context", Elements: []slackElem{{Type: "mrkdwn", Text: footer}}})
 	return json.Marshal(struct {
 		Text   string       `json:"text"`
 		Blocks []slackBlock `json:"blocks"`

@@ -89,3 +89,21 @@ func TestReportEmptyListsAreArrays(t *testing.T) {
 }
 
 func runPtr(r Run) *Run { return &r }
+
+// The source link follows the version: a release's tag, a development
+// build's commit, else the repository.
+func TestSourceLink(t *testing.T) {
+	for version, want := range map[string]string{
+		"v0.4.0":                               SourceURL + "/tree/v0.4.0",
+		"v0.5.0-rc.1":                          SourceURL + "/tree/v0.5.0-rc.1",
+		"v0.4.1-0.20261026182707-7d2679d4ffa4": SourceURL + "/tree/7d2679d4ffa4",
+		"v0.4.1-0.20261026182707-7d2679d4ffa4+dirty": SourceURL,
+		"v0.2.0+dirty": SourceURL,
+		"(devel)":      SourceURL,
+		"":             SourceURL,
+	} {
+		if got := SourceLink(version); got != want {
+			t.Errorf("SourceLink(%q) = %s, want %s", version, got, want)
+		}
+	}
+}

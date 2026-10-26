@@ -26,6 +26,8 @@ var templates = template.Must(template.New("").Funcs(template.FuncMap{
 	"progress":   progress,
 	"gapAt":      gapAt,
 	"stateClass": stateClass,
+	"sourceURL":  func() string { return cistatus.SourceURL },
+	"sourceLink": cistatus.SourceLink,
 	"wordmark":   func() template.HTML { return wordmarkHTML },
 }).ParseFS(templateFS, "templates/*.html"))
 
