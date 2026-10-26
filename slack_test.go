@@ -117,11 +117,14 @@ func decodeSlack(t *testing.T, b []byte) (slackMsg, string) {
 	var all []string
 	for _, bl := range m.Blocks {
 		if bl.Text != nil {
-			if bl.Type != "section" || bl.Text.Type != "mrkdwn" {
+			if want := map[string]string{"section": "mrkdwn", "header": "plain_text"}[bl.Type]; bl.Text.Type != want {
 				t.Errorf("block %s with %s text", bl.Type, bl.Text.Type)
 			}
-			if len(bl.Text.Text) > 3000 {
-				t.Errorf("section text of %d characters", len(bl.Text.Text))
+			if len(bl.Text.Text) > 3000 || (bl.Type == "header" && len(bl.Text.Text) > 150) {
+				t.Errorf("%s text of %d characters", bl.Type, len(bl.Text.Text))
+			}
+			if regexp.MustCompile(`^\*[A-Za-z]+ \(\d+\)\*$`).MatchString(bl.Text.Text) {
+				t.Errorf("a heading in a block of its own: %s", bl.Text.Text)
 			}
 			all = append(all, bl.Text.Text)
 		}
@@ -180,23 +183,26 @@ func TestSlackMessage(t *testing.T) {
 		t.Fatal(err)
 	}
 	m, all := decodeSlack(t, b)
-	if m.Text != "gh-ci-status: "+rep.Summary {
+	if m.Text != rep.Summary {
 		t.Errorf("text = %q", m.Text)
 	}
+	if m.Blocks[0].Type != "header" || m.Blocks[0].Text.Text != rep.Summary || m.Blocks[1].Type != "context" || m.Blocks[1].Elements[0].Text != testRepo {
+		t.Errorf("the message should open with the summary as a heading, then the repository: %+v", m.Blocks[:2])
+	}
+	if strings.Contains(all, "*gh-ci-status*") {
+		t.Error("the app's name is repeated; Slack shows it already")
+	}
 	for _, want := range []string{
-		"*gh-ci-status* · " + testRepo + "\n" + rep.Summary,
-		"*Failing (3)*",
-		"*<" + hist("b.yml", "main") + "|Build>* on main · failing for 10 days · <" + runsURL + "120|#20>\n" +
-			"failed at <https://github.com/x/job/9|Compile (build)> · 2 failed runs since the last passing run <" + runsURL + "118|#18> (Oct 10) · running <" + runsURL + "121|#21>",
-		"*<" + hist("n.yml", "main") + "|Never>* on main · failing for 23 days · <" + runsURL + "5|#5>\nnever passed on main · 3 failed runs",
-		"*<" + hist("o.yml", "main") + "|A &lt;b&gt; &amp; c>* on main · failing for 1 day · <" + runsURL + "7|#7>\nno passing run in the last 1 main run",
-		"*Unreadable (1)*\n<" + hist("gone.yml", "dev") + "|gone.yml> on dev: GET /x: 404 Not Found",
-		"*Other (3)*\n",
-		"<" + hist("c.yml", "main") + "|Cancelled> on main: cancelled <" + runsURL + "50|#5>",
-		"<" + hist("e.yml", "dev") + "|Never ran> on dev: no runs yet",
-		"<" + hist("f.yml", "main") + "|First> on main: waiting <" + runsURL + "1|#1>",
-		"*Passing (2)*: <" + hist("l.yml", "main") + "|Lint> (waiting <" + runsURL + "61|#7>), <" + hist("d.yml", "main") + "|Docs>",
-		"*Disabled (1)*: <" + hist("old.yml", "main") + "|Old>",
+		"*Failing (3)*\n🔴 *<" + hist("n.yml", "main") + "|Never>* on main · failing for 23 days · <" + runsURL + "5|#5>\nnever passed on main · 3 failed runs\n" +
+			"🔴 *<" + hist("b.yml", "main") + "|Build>* on main · failing for 10 days · <" + runsURL + "120|#20>\n" +
+			"failed at <https://github.com/x/job/9|Compile (build)> · 2 failed runs since the last passing run <" + runsURL + "118|#18> (Oct 10) · running <" + runsURL + "121|#21>\n" +
+			"🔴 *<" + hist("o.yml", "main") + "|A &lt;b&gt; &amp; c>* on main · failing for 1 day · <" + runsURL + "7|#7>\nno passing run in the last 1 main run",
+		"*Unreadable (1)*\n⚪ <" + hist("gone.yml", "dev") + "|gone.yml> on dev: GET /x: 404 Not Found",
+		"*Other (3)*\n🟡 <" + hist("f.yml", "main") + "|First> on main: waiting <" + runsURL + "1|#1>\n" +
+			"⚪ <" + hist("c.yml", "main") + "|Cancelled> on main: cancelled <" + runsURL + "50|#5>\n" +
+			"⚪ <" + hist("e.yml", "dev") + "|Never ran> on dev: no runs yet",
+		"*Passing (2)*\n🟢 <" + hist("l.yml", "main") + "|Lint> · 🟡 waiting <" + runsURL + "61|#7>\n🟢 <" + hist("d.yml", "main") + "|Docs>",
+		"*Disabled (1)*\n⚪ <" + hist("old.yml", "main") + "|Old>",
 		"Oct 24, 5:00 AM PDT · gh-ci-status v0.4.0",
 	} {
 		if !strings.Contains(all, want) {
@@ -218,20 +224,21 @@ func TestSlackMessageSeveralRepos(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, all := decodeSlack(t, b); !strings.Contains(all, "|Build> (o/other)") || !strings.Contains(all, testRepo+", o/other") {
+	if _, all := decodeSlack(t, b); !strings.Contains(all, "🟢 <"+HistoryURL("o/other", "b.yml", "main")+"|Build> (o/other)") || !strings.Contains(all, testRepo+", o/other") {
 		t.Errorf("message = %s", all)
 	}
 }
 
-// Slack takes at most 50 blocks and 3000 characters a section: many reds end
-// in "and N more", and a long passing list is cut with a count.
+// Slack takes at most 50 blocks and 3000 characters a section: long groups
+// continue in further blocks, every failing row is listed, and what does not
+// fit ends in "and N more".
 func TestSlackMessageLimits(t *testing.T) {
 	var rows []Row
 	for i := 0; i < 60; i++ {
 		rows = append(rows, Row{Repo: testRepo, Watch: Watch{Workflow: "r" + strings.Repeat("x", i%7) + ".yml", Branch: "main"}, Name: "Red " + string(rune('A'+i%26)),
 			State: Failing, Latest: run(int64(i), i, "main", "completed", "failure", "2026-10-20T12:00:00Z"), Age: "4 days", FailedRuns: 1})
 	}
-	for i := 0; i < 400; i++ {
+	for i := 0; i < 2000; i++ {
 		rows = append(rows, Row{Repo: testRepo, Watch: Watch{Workflow: "passing-workflow-number-" + string(rune('a'+i%26)) + ".yml", Branch: "main"}, Name: "Passing workflow with a long name",
 			State: Passing, Latest: run(int64(1000+i), i, "main", "completed", "success", "2026-10-23T12:00:00Z")})
 	}
@@ -240,11 +247,27 @@ func TestSlackMessageLimits(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, all := decodeSlack(t, b)
-	if !strings.Contains(all, "*Failing (60)*") || !strings.Contains(all, "and 20 more failing") {
-		t.Errorf("reds: %.400s", all)
+	if !strings.Contains(all, "*Failing (60)*") || strings.Count(all, "🔴") != 60 {
+		t.Errorf("failing: %d of 60 listed", strings.Count(all, "🔴"))
 	}
-	if !regexp.MustCompile(`\*Passing \(400\)\*: .*, and \d+ more\n`).MatchString(all) {
-		t.Errorf("passing list not cut with a count")
+	if !strings.Contains(all, "*Passing (2000)*") || !regexp.MustCompile(`\nand \d+ more\n`).MatchString(all) {
+		t.Errorf("a long passing list is not cut with a count")
+	}
+	// So many failing rows that they cannot all fit: they end in a count, and
+	// the passing group still has its block.
+	many := append([]Row(nil), rows[:60]...)
+	for i := 0; i < 15; i++ {
+		many = append(many, many[:60]...)
+	}
+	many = append(many, rows[60])
+	b, err = SlackMessage(NewReport([]string{testRepo}, many, testNow), la)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, all = decodeSlack(t, b)
+	before, _, found := strings.Cut(all, "*Passing (1)*\n🟢")
+	if !found || !regexp.MustCompile(`\nand \d+ more\n$`).MatchString(before) {
+		t.Errorf("an overlong failing group should end in a count and leave the passing group its block")
 	}
 }
 

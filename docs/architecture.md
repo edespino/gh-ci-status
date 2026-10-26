@@ -124,11 +124,14 @@ a gh-ci-status with `/shutdown`, is reported and left running.
 
 ## Slack message
 
-`SlackMessage` turns the JSON report into Slack's Block Kit: a section with the summary, a
-section per failing row (up to 40, then one "and N more failing" section), sections listing unreadable,
-other, passing and disabled rows, and a context line with the time and version. It keeps to
-Slack's limits of 50 blocks a message and 3000 characters a section, cutting long lists with
-"and N more", and escapes `&`, `<` and `>` in text from GitHub. It uses sections rather than
+`SlackMessage` turns the JSON report into Slack's Block Kit: a header block with the summary,
+a context line with the repositories, one section per group (failing, unreadable, other,
+passing, disabled) holding its heading and a line per workflow, and a context line with the
+time and version. It does not repeat the app's name, which Slack shows above the message.
+Each line starts with a mark (🔴 failing, 🟢 passing, 🟡 running or waiting, ⚪ the rest). A
+group longer than one section (3000 characters) continues in the next; within Slack's 50
+blocks every group after it keeps at least one section, and what does not fit ends in
+"and N more". Text from GitHub has `&`, `<` and `>` escaped. It uses sections rather than
 Slack's coloured attachments, which Slack calls legacy and folds after five lines.
 
 ## Planned: MCP server
