@@ -43,7 +43,15 @@ gh extension install edespino/gh-ci-status
 gh ci-status serve
 ```
 
-The server runs in that terminal until you press Ctrl-C.
+The server runs in that terminal until you press Ctrl-C. To keep it running after the terminal
+closes, start it in the background instead:
+
+```shell
+gh ci-status serve --daemon     # prints the address and returns
+gh ci-status stop               # stops it
+```
+
+A background server writes what it prints to `~/.config/gh-ci-status/serve.log`.
 
 On the first run:
 
@@ -89,7 +97,8 @@ remove them too. To build it from source instead, see [Development](#development
 |---|---|
 | `gh ci-status` | Print the status of everything you watch. |
 | `gh ci-status --json` | The same as a JSON report, for scripts and tools. |
-| `gh ci-status serve` | Serve the web page on `http://127.0.0.1:8723/` and open it. `--port N` uses another port, `--no-open` does not open the browser, `--new-key` replaces the key in the address. |
+| `gh ci-status serve` | Serve the web page on `http://127.0.0.1:8723/` and open it. `--port N` uses another port, `--no-open` does not open the browser, `--new-key` replaces the key in the address, `--daemon` runs it in the background. |
+| `gh ci-status stop` | Stop the server on port 8723, or on `--port N`. |
 | `gh ci-status add OWNER/REPO` | Check a repository with GitHub and add it. |
 | `gh ci-status check` | Check the GitHub CLI, your login, the API and each repository. |
 | `gh ci-status --version` | Print the version. |
@@ -181,8 +190,9 @@ If someone else gets your address, start with `gh ci-status serve --new-key`. Se
 |---|---|
 | `~/.config/gh-ci-status/config.json` | The repositories and the workflow and branch pairs you watch. |
 | `~/.config/gh-ci-status/key` | The key in your bookmarked address. |
+| `~/.config/gh-ci-status/serve.log` | What a background server (`serve --daemon`) prints, address included. |
 
-`$XDG_CONFIG_HOME/gh-ci-status/` is used instead when `XDG_CONFIG_HOME` is set. Both files are
+`$XDG_CONFIG_HOME/gh-ci-status/` is used instead when `XDG_CONFIG_HOME` is set. These files are
 created with mode `0600` in a `0700` directory. There are no built-in defaults: a new user
 starts with nothing watched.
 

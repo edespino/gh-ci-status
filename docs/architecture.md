@@ -9,7 +9,7 @@ with the user's GitHub CLI login and keeps its settings on the user's computer.
 | Package | Role |
 |---|---|
 | `cistatus` (module root) | The library: GitHub client, setup checks, the saved configuration, the rules that decide a row, collection, and the JSON report. Everything a web page, a command line or an MCP server needs to give the same answers. |
-| `cmd/gh-ci-status` | The command: `gh ci-status`, `--json`, `serve`, `add`, `check`, `--version`. |
+| `cmd/gh-ci-status` | The command: `gh ci-status`, `--json`, `serve` (and `serve --daemon`), `stop`, `add`, `check`, `--version`. |
 | `internal/web` | The local web server: status, Configure and Setup pages, the page key, and what Configure keeps between visits. |
 | `internal/banner` | The logo: the wordmark for terminals, pages and the README image. |
 | `internal/fakegithub` | A fake GitHub REST API for tests. |
@@ -84,6 +84,8 @@ the path and status, never the token.
   `X-Content-Type-Options: nosniff` and a Content-Security-Policy that allows only the page's
   own inline styles and scripts, same-origin requests and same-origin form posts.
 - The log records method, path and status, never the query.
+- `POST /shutdown` ends the server. Like every route it needs the key, so only `gh ci-status
+  stop`, which reads the key from `key`, or something else that has the key can stop it.
 - Form and query input is checked before use: repository names (`owner/name` in GitHub's
   characters), workflow file names and branch names. `/api/row` and every change only act on
   repositories that are set up.
@@ -97,6 +99,18 @@ the path and status, never the token.
    to add one and exits with code 2.
 3. Setup and `gh ci-status add` take `owner/name` or a GitHub address, and `CheckRepo` confirms
    that the login can read it and that it has workflows. The name is saved as GitHub spells it.
+
+## Background server
+
+`serve --daemon` starts the same program again as `serve` with the same `--port`, `--no-open`
+and `--new-key`, in its own session (on Windows, without a console), so closing the terminal
+does not end it. Its standard output and error are appended to `serve.log` (mode `0600`: it
+holds the address). The first process waits until the new one prints its address and returns
+it, or, when the new one ends first, prints what it wrote and exits with code 1.
+
+`stop` posts to `/shutdown` on the port and waits for the port to close. When nothing listens
+there it says so and exits with code 0; a server that refuses the key, or a program that is not
+a gh-ci-status with `/shutdown`, is reported and left running.
 
 ## Planned: MCP server
 

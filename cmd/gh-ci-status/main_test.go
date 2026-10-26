@@ -12,10 +12,12 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
+	"syscall"
 	"testing"
 	"time"
 
@@ -24,7 +26,13 @@ import (
 )
 
 // TestMain pins the time zone before any test or server goroutine starts.
+// With GH_CI_STATUS_HELPER=1 the test binary runs as gh-ci-status instead,
+// against the fake GitHub named in the environment: the daemon tests start
+// it as their background server.
 func TestMain(m *testing.M) {
+	if os.Getenv("GH_CI_STATUS_HELPER") == "1" {
+		os.Exit(helperMain())
+	}
 	la, err := time.LoadLocation("America/Los_Angeles")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -32,6 +40,27 @@ func TestMain(m *testing.M) {
 	}
 	time.Local = la
 	os.Exit(m.Run())
+}
+
+// helperMain is gh-ci-status for the daemon tests' background process. It
+// "opens the browser" by creating the file "opened" in its settings folder.
+func helperMain() int {
+	dir := os.Getenv("GH_CI_STATUS_HELPER_DIR")
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	return run(ctx, os.Args[1:], deps{
+		stdout: os.Stdout, stderr: os.Stderr,
+		token: func(context.Context) (string, error) {
+			if os.Getenv("GH_CI_STATUS_HELPER_NO_LOGIN") == "1" {
+				return "", errors.New("no oauth token found for github.com")
+			}
+			return "tkn", nil
+		},
+		lookPath: func(string) (string, error) { return "/usr/bin/gh", nil },
+		baseURL:  os.Getenv("GH_CI_STATUS_HELPER_BASEURL"), dir: dir,
+		now: time.Now, open: func(string) error { return os.WriteFile(filepath.Join(dir, "opened"), nil, 0o600) },
+		listen: func(addr string) (net.Listener, error) { return net.Listen("tcp", addr) },
+	})
 }
 
 const testRepo = "example-org/example-repo"
@@ -109,7 +138,7 @@ func TestHelp(t *testing.T) {
 	if code := run(context.Background(), []string{"--help"}, e.d); code != 0 {
 		t.Fatalf("exit %d", code)
 	}
-	for _, want := range []string{"serve", "--port", "--no-open", "--new-key", "--json", "add OWNER/REPO", "check", "Exit codes", "gh extension install"} {
+	for _, want := range []string{"serve", "--port", "--no-open", "--new-key", "--json", "add OWNER/REPO", "check", "Exit codes", "gh extension install", "gh ci-status stop", "--daemon"} {
 		if !strings.Contains(e.out.String(), want) {
 			t.Errorf("usage lacks %s", want)
 		}

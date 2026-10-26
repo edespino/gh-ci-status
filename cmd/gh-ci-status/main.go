@@ -19,7 +19,9 @@ import (
 	"os/exec"
 	"os/signal"
 	"runtime"
+	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -37,12 +39,15 @@ and run it as 'gh ci-status'. The binary also runs on its own as 'gh-ci-status'.
 Usage:
   gh ci-status                  print the status of everything you watch
   gh ci-status --json           the same as JSON, for scripts and tools
-  gh ci-status serve [--port N] [--no-open] [--new-key]
+  gh ci-status serve [--port N] [--no-open] [--new-key] [--daemon]
                                 serve the web page on http://127.0.0.1:N/ (default 8723)
                                 and open it; --no-open does not open the browser;
-                                --new-key replaces the saved key (old bookmarks stop working)
+                                --new-key replaces the saved key (old bookmarks stop working);
+                                --daemon runs it in the background, with its output in
+                                serve.log in the settings folder
   gh ci-status add OWNER/REPO   check a repository with GitHub and add it
   gh ci-status check            check the GitHub CLI, your login and each repository
+  gh ci-status stop [--port N]  stop the server on that port (default 8723)
   gh ci-status --version
   gh ci-status --help
 
@@ -71,8 +76,10 @@ type deps struct {
 	now            func() time.Time
 	open           func(string) error
 	listen         func(addr string) (net.Listener, error)
-	isTerminal     func() bool         // nil: not a terminal
-	getenv         func(string) string // nil: empty environment
+	isTerminal     func() bool            // nil: not a terminal
+	getenv         func(string) string    // nil: empty environment
+	executable     func() (string, error) // this program, for serve --daemon
+	childEnv       []string               // added to the background server's environment
 }
 
 func main() {
@@ -89,6 +96,7 @@ func main() {
 		now: time.Now, open: openBrowser,
 		listen:     func(addr string) (net.Listener, error) { return net.Listen("tcp", addr) },
 		isTerminal: stdoutIsTerminal, getenv: os.Getenv,
+		executable: os.Executable,
 	})
 	stop()
 	os.Exit(code)
@@ -114,6 +122,8 @@ func run(ctx context.Context, args []string, d deps) int {
 		return check(ctx, d)
 	case "add":
 		return add(ctx, args[1:], d)
+	case "stop":
+		return stop(ctx, args[1:], d)
 	}
 	fmt.Fprintf(d.stderr, "gh-ci-status: unknown command %q\n\n%s", args[0], usage)
 	return 2
@@ -257,6 +267,7 @@ func serve(ctx context.Context, args []string, d deps) int {
 	port := fs.Int("port", defaultPort, "port on 127.0.0.1")
 	noOpen := fs.Bool("no-open", false, "do not open the browser")
 	newKey := fs.Bool("new-key", false, "replace the saved key")
+	background := fs.Bool("daemon", false, "run in the background (output in serve.log; stop with 'gh ci-status stop')")
 	if err := fs.Parse(args); err != nil {
 		return 2
 	}
@@ -267,6 +278,16 @@ func serve(ctx context.Context, args []string, d deps) int {
 			getenv = func(string) string { return "" }
 		}
 		fmt.Fprint(d.stdout, banner.Terminal(banner.UseColor(getenv)), "\n")
+	}
+	if *background {
+		childArgs := []string{"--port", strconv.Itoa(*port)}
+		if *noOpen {
+			childArgs = append(childArgs, "--no-open")
+		}
+		if *newKey {
+			childArgs = append(childArgs, "--new-key")
+		}
+		return daemon(childArgs, d)
 	}
 	if _, ok := prerequisites(ctx, d); !ok {
 		fmt.Fprintln(d.stderr, "gh-ci-status: fix the check above, then start again")
@@ -289,6 +310,8 @@ func serve(ctx context.Context, args []string, d deps) int {
 	actual := ln.Addr().(*net.TCPAddr).Port
 	url := fmt.Sprintf("http://127.0.0.1:%d/?key=%s", actual, key)
 
+	stopRequested := make(chan struct{})
+	var stopOnce sync.Once
 	s := web.New(web.Options{
 		Client: func(ctx context.Context) (*cistatus.Client, error) {
 			t, err := d.token(ctx) // read per request, so a new 'gh auth login' needs no restart
@@ -299,6 +322,7 @@ func serve(ctx context.Context, args []string, d deps) int {
 		},
 		Dir: d.dir, Key: key, Port: actual, Now: d.now, Version: func() string { v, _ := version.Get(); return v }(),
 		Logger: log.New(d.stderr, "gh-ci-status: ", log.LstdFlags),
+		Stop:   func() { stopOnce.Do(func() { close(stopRequested) }) },
 	})
 	srv := &http.Server{Handler: s.Handler(), ReadHeaderTimeout: 10 * time.Second}
 	served := make(chan error, 1)
@@ -316,6 +340,7 @@ func serve(ctx context.Context, args []string, d deps) int {
 
 	select {
 	case <-ctx.Done():
+	case <-stopRequested:
 	case err := <-served:
 		if !errors.Is(err, http.ErrServerClosed) {
 			fmt.Fprintln(d.stderr, "gh-ci-status:", err)

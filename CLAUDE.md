@@ -49,5 +49,7 @@ Try changes against a scratch configuration so a real one is not touched:
   inside a test.
 - Browser tests (`internal/web/browser_test.go`) need Chrome or Chromium (`$CHROME_PATH`, on
   `PATH`, or the macOS app) and skip without it.
+- The daemon tests run this test binary as the background server: `TestMain` runs
+  `helperMain` when `GH_CI_STATUS_HELPER=1`. They stop every server their `serve.log` names.
 - `TestBannerSVG` fails when `assets/banner.svg` no longer matches the wordmark; run
   `make banner`.

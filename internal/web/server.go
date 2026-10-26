@@ -32,7 +32,10 @@ type Options struct {
 	Port    int              // the port the server listens on, for the Host check
 	Now     func() time.Time // nil: time.Now
 	Logger  *log.Logger      // nil: no request log
-	Version string           // shown in every page\'s footer
+	Version string           // shown in every page's footer
+	// Stop is called by POST /shutdown (gh ci-status stop) to end the program;
+	// nil turns the route off.
+	Stop func()
 }
 
 // Server serves the pages on 127.0.0.1 to whoever holds the key. The key
@@ -46,6 +49,7 @@ type Server struct {
 	now     func() time.Time
 	logger  *log.Logger
 	version string
+	stop    func()
 
 	mu   sync.Mutex
 	kept map[string]*kept // per repository: what Configure read, until Refresh
@@ -56,7 +60,7 @@ func New(o Options) *Server {
 	if o.Now == nil {
 		o.Now = time.Now
 	}
-	return &Server{client: o.Client, dir: o.Dir, key: o.Key, port: o.Port, now: o.Now, logger: o.Logger, version: o.Version}
+	return &Server{client: o.Client, dir: o.Dir, key: o.Key, port: o.Port, now: o.Now, logger: o.Logger, version: o.Version, stop: o.Stop}
 }
 
 // Handler is the server's HTTP handler, with the key and Host checks.
@@ -77,11 +81,25 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /watch-many", s.watchMany)
 	mux.HandleFunc("POST /unwatch-workflow", s.unwatchWorkflow)
 	mux.HandleFunc("POST /unwatch-all", s.unwatchAll)
+	mux.HandleFunc("POST /shutdown", s.shutdown)
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		_, _ = io.WriteString(w, "ok")
 	})
 	return s.guard(mux)
+}
+
+// shutdown answers "gh ci-status stop": it confirms, then asks the program to
+// stop. Like every route it needs the key, so only the user can stop it.
+func (s *Server) shutdown(w http.ResponseWriter, r *http.Request) {
+	if s.stop == nil {
+		http.Error(w, "stopping is not available here", http.StatusNotImplemented)
+		return
+	}
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.WriteHeader(http.StatusAccepted)
+	_, _ = io.WriteString(w, "stopping\n")
+	s.stop()
 }
 
 // guard sets security headers, logs the request path (never the query, which

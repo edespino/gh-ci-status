@@ -22,7 +22,7 @@ type ReportRow struct {
 	Branch     string `json:"branch"`
 	State      State  `json:"state"`
 	Conclusion string `json:"conclusion,omitempty"` // for "other": GitHub's word
-	// WorkflowState is GitHub\'s word for a "disabled" row, e.g. "disabled_manually".
+	// WorkflowState is GitHub's word for a "disabled" row, e.g. "disabled_manually".
 	WorkflowState string     `json:"workflow_state,omitempty"`
 	RedSince      *time.Time `json:"red_since,omitempty"`   // failing: first red run after the last green
 	Age           string     `json:"age,omitempty"`         // failing: how long it has been red

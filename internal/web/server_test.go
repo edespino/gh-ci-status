@@ -414,3 +414,20 @@ func TestUnwatchAllKeepsRepo(t *testing.T) {
 		t.Fatalf("status after remove all: %d %s", page.Code, body)
 	}
 }
+
+// POST /shutdown, with the key, asks the program to stop; without the key it
+// is refused like every other route.
+func TestShutdownRoute(t *testing.T) {
+	s, _, _ := newTestServer(t)
+	stopped := 0
+	s.stop = func() { stopped++ }
+	if rec := do(s, "POST", "/shutdown", host, url.Values{}); rec.Code != 403 || stopped != 0 {
+		t.Fatalf("without key: code %d stopped %d", rec.Code, stopped)
+	}
+	if rec := do(s, "GET", keyed("/shutdown"), host, nil); rec.Code != 405 || stopped != 0 {
+		t.Fatalf("GET: code %d stopped %d", rec.Code, stopped)
+	}
+	if rec := do(s, "POST", keyed("/shutdown"), host, url.Values{}); rec.Code != 202 || stopped != 1 {
+		t.Fatalf("with key: code %d stopped %d", rec.Code, stopped)
+	}
+}
