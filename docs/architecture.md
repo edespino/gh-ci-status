@@ -125,15 +125,17 @@ a gh-ci-status with `/shutdown`, is reported and left running.
 ## Slack message
 
 `SlackMessage` turns the JSON report into Slack's Block Kit: a header block with the summary,
-a context line with the repositories, one section per group (failing, unreadable, other,
-passing, disabled) holding its heading and a line per workflow, and a context line with the
-time and version. It does not repeat the app's name, which Slack shows above the message.
-Each line starts with a mark (🔴 failing, 🟢 passing, ⚪ the rest); a run in progress is
-marked 🔄 running or 🕒 waiting. A
-group longer than one section (3000 characters) continues in the next; within Slack's 50
-blocks every group after it keeps at least one section, and what does not fit ends in
-"and N more". Text from GitHub has `&`, `<` and `>` escaped. It uses sections rather than
-Slack's coloured attachments, which Slack calls legacy and folds after five lines.
+a context line with the repositories, one rich text block per group (failing, unreadable,
+other, passing, disabled), and a context line with the time and version. It does not repeat
+the app's name, which Slack shows above the message. A group's block is its heading in bold
+and a bulleted list, one item per workflow (up to 40, then "and N more"); a failing
+workflow's details (failed step, runs since the last passing one, run in progress) are an
+indented item under it. Each item starts with a mark (🔴 failing, 🟢 passing, ⚪ the rest); a
+run in progress is marked 🔄 running or 🕒 waiting. Rich text carries text as it is, so
+nothing needs escaping except in the two context lines. Earlier versions used sections of
+Slack markdown, which Slack splits at 3000 characters with a gap; rich text lists keep a
+group together. Slack's coloured attachments are not used: Slack calls them legacy and folds
+them after five lines.
 
 ## Planned: MCP server
 

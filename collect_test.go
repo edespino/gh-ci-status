@@ -103,6 +103,18 @@ func TestCollectRedWithRunInProgress(t *testing.T) {
 	}
 }
 
+// A step named like its job is not named twice.
+func TestCollectStepNamedLikeItsJob(t *testing.T) {
+	f := fakegithub.New(t)
+	serveWorkflow(f, "red.yml", "R", "main", runJSON(150, 3, "main", "completed", "failure", "2026-10-20T12:00:00Z"))
+	f.Handle("/repos/o/r/actions/runs/150/jobs?per_page=100", 200, `{"jobs":[{"name":"Open tracking issue","conclusion":"failure",
+		"html_url":"https://github.com/o/r/actions/runs/150/job/7","steps":[{"name":"Open tracking issue","conclusion":"failure"}]}]}`)
+	rows := Collect(context.Background(), testClient(f), fr, []Watch{{"red.yml", "main"}}, testNow)
+	if rows[0].FailedStep == nil || rows[0].FailedStep.Label != "Open tracking issue" {
+		t.Fatalf("row = %+v", rows[0])
+	}
+}
+
 func TestCollectFailedJobWithoutFailedStep(t *testing.T) {
 	f := fakegithub.New(t)
 	serveWorkflow(f, "red.yml", "R", "main", runJSON(130, 3, "main", "completed", "failure", "2026-10-20T12:00:00Z"))

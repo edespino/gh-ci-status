@@ -89,9 +89,13 @@ func failedStep(ctx context.Context, c *Client, repo string, runID int64) *StepR
 			continue
 		}
 		for _, s := range j.Steps {
-			if red[s.Conclusion] {
-				return &StepRef{URL: j.HTMLURL, Label: s.Name + " (" + j.Name + ")"}
+			if !red[s.Conclusion] {
+				continue
 			}
+			if s.Name == j.Name {
+				break // named like its job: the job's name alone
+			}
+			return &StepRef{URL: j.HTMLURL, Label: s.Name + " (" + j.Name + ")"}
 		}
 		return &StepRef{URL: j.HTMLURL, Label: j.Name}
 	}

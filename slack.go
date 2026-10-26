@@ -97,25 +97,40 @@ func RemoveSlack(dir string) error {
 	return nil
 }
 
-// Slack takes at most 50 blocks a message, 3000 characters a section and
-// 150 a header.
+// Slack's limit for a header's text; slackMaxItems keeps each group's list
+// short (the rest is counted).
 const (
-	slackMaxBlocks  = 50
-	slackMaxSection = 3000
-	slackMaxHeader  = 150
-	slackMoreRoom   = 40 // kept free in a section for "and N more"
+	slackMaxHeader = 150
+	slackMaxItems  = 40
 )
+
+// slackBlock is a Block Kit block: a header with text, or a context line or
+// rich text with elements.
+type slackBlock struct {
+	Type     string      `json:"type"`
+	Text     *slackText  `json:"text,omitempty"`
+	Elements []slackElem `json:"elements,omitempty"`
+}
 
 type slackText struct {
 	Type string `json:"type"`
 	Text string `json:"text"`
 }
 
-type slackBlock struct {
+// slackElem is an element of rich text (a section, a list, a piece of text
+// or a link) or a context line's text.
+type slackElem struct {
 	Type     string      `json:"type"`
-	Text     *slackText  `json:"text,omitempty"`
-	Elements []slackText `json:"elements,omitempty"`
+	Text     string      `json:"text,omitempty"`
+	URL      string      `json:"url,omitempty"`
+	Style    any         `json:"style,omitempty"` // a list's "bullet", or {"bold": true}
+	Indent   int         `json:"indent,omitempty"`
+	Elements []slackElem `json:"elements,omitempty"`
 }
+
+// slackItem is a workflow's line and, for a failing one, its details, shown
+// indented under it.
+type slackItem struct{ line, details []slackElem }
 
 var slackEscape = strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;")
 
@@ -131,141 +146,159 @@ const (
 )
 
 // SlackMessage is the Slack message (an incoming webhook's JSON) for rep: the
-// summary as a heading, the repositories, then one block per group (failing,
-// unreadable, other, passing, disabled) with a line per workflow, and when it
-// was made, in loc. Slack shows the app's name, so the message does not
-// repeat it. Links go to GitHub only.
+// summary as a heading, the repositories, then for each group (failing,
+// unreadable, other, passing, disabled) one rich text block with its heading
+// and a list, one item per workflow, a failing one's details indented under
+// it; last, when it was made, in loc. Slack shows the app's name, so the
+// message does not repeat it. Links go to GitHub only.
 func SlackMessage(rep Report, loc *time.Location) ([]byte, error) {
 	multi := len(rep.Repos) > 1
-	link := func(url string, n int) string { return fmt.Sprintf("<%s|#%d>", url, n) }
-	name := func(r ReportRow) string {
-		s := "<" + r.HistoryURL + "|" + slackEscape.Replace(r.Name) + ">"
-		if multi {
-			s += " (" + slackEscape.Replace(r.Repo) + ")"
+	text := func(s string) slackElem { return slackElem{Type: "text", Text: s} }
+	link := func(url, s string) slackElem { return slackElem{Type: "link", URL: url, Text: s} }
+	run := func(r *RunRef) slackElem { return link(r.URL, fmt.Sprintf("#%d", r.Number)) }
+	name := func(r ReportRow, bold bool) []slackElem {
+		e := link(r.HistoryURL, r.Name)
+		if bold {
+			e.Style = map[string]bool{"bold": true}
 		}
-		return s
+		if multi {
+			return []slackElem{e, text(" (" + r.Repo + ")")}
+		}
+		return []slackElem{e}
 	}
 	// inProgress is the run in progress, if any: its mark (🔄 running, 🕒
 	// waiting) and "running #N" or "waiting #N".
-	inProgress := func(r ReportRow) (mark, text string) {
+	inProgress := func(r ReportRow) (mark string, els []slackElem) {
 		if r.InProgress == nil {
-			return "", ""
+			return "", nil
 		}
 		mark = markRunning
 		if waiting(r.InProgress.Status) {
 			mark = markWaiting
 		}
-		return mark, progress(r.InProgress.Status) + " " + link(r.InProgress.URL, r.InProgress.Number)
+		return mark, []slackElem{text(progress(r.InProgress.Status) + " "), run(r.InProgress)}
 	}
-	on := func(r ReportRow) string { return " on " + slackEscape.Replace(r.Branch) }
+	line := func(parts ...any) []slackElem {
+		var out []slackElem
+		for _, p := range parts {
+			switch v := p.(type) {
+			case string:
+				out = append(out, text(v))
+			case slackElem:
+				out = append(out, v)
+			case []slackElem:
+				out = append(out, v...)
+			}
+		}
+		return out
+	}
 
-	var failing, unreadable, other, passing, disabled []string
+	var failing, unreadable, other, passing, disabled []slackItem
 	for _, r := range rep.Rows {
+		on := " on " + r.Branch
 		switch r.State {
 		case Failing:
-			s := markFailing + " *" + name(r) + "*" + on(r) + " · failing for " + r.Age
+			it := slackItem{line: line(markFailing+" ", name(r, true), on+" · failing for "+r.Age)}
 			if r.Latest != nil {
-				s += " · " + link(r.Latest.URL, r.Latest.Number)
+				it.line = line(it.line, " · ", run(r.Latest))
 			}
-			var more []string
+			var details [][]slackElem
 			if r.FailedStep != nil {
-				more = append(more, "failed at <"+r.FailedStep.URL+"|"+slackEscape.Replace(r.FailedStep.Label)+">")
+				details = append(details, line("failed at ", link(r.FailedStep.URL, r.FailedStep.Label)))
 			}
 			switch {
 			case r.LastGreen != nil:
-				more = append(more, fmt.Sprintf("%s since the last passing run %s (%s)", plural(r.FailedRuns, "failed run"),
-					link(r.LastGreen.URL, r.LastGreen.Number), r.LastGreen.CreatedAt.In(loc).Format("Jan 2")))
+				details = append(details, line(plural(r.FailedRuns, "failed run")+" since the last passing run ", run(r.LastGreen),
+					" ("+r.LastGreen.CreatedAt.In(loc).Format("Jan 2")+")"))
 			case r.NeverGreen:
-				more = append(more, "never passed"+on(r)+" · "+plural(r.FailedRuns, "failed run"))
+				details = append(details, line("never passed"+on+" · "+plural(r.FailedRuns, "failed run")))
 			default:
-				more = append(more, "no passing run in the last "+plural(r.FailedRuns, slackEscape.Replace(r.Branch)+" run"))
+				details = append(details, line("no passing run in the last "+plural(r.FailedRuns, r.Branch+" run")))
 			}
-			if mark, text := inProgress(r); text != "" {
-				more = append(more, mark+" "+text)
+			if mark, els := inProgress(r); els != nil {
+				details = append(details, line(mark+" ", els))
 			}
-			failing = append(failing, s+"\n"+strings.Join(more, " · "))
+			for i, d := range details {
+				if i > 0 {
+					it.details = append(it.details, text(" · "))
+				}
+				it.details = append(it.details, d...)
+			}
+			failing = append(failing, it)
 		case Error:
-			unreadable = append(unreadable, markOther+" "+name(r)+on(r)+": "+slackEscape.Replace(cut(r.Error, 300)))
+			unreadable = append(unreadable, slackItem{line: line(markOther+" ", name(r, false), on+": "+cut(r.Error, 300))})
 		case Running:
-			mark, text := inProgress(r)
-			other = append(other, mark+" "+name(r)+on(r)+": "+text)
+			mark, els := inProgress(r)
+			other = append(other, slackItem{line: line(mark+" ", name(r, false), on+": ", els)})
 		case Other:
-			s := markOther + " " + name(r) + on(r) + ": " + slackEscape.Replace(r.Conclusion)
+			it := slackItem{line: line(markOther+" ", name(r, false), on+": "+r.Conclusion)}
 			if r.Latest != nil {
-				s += " " + link(r.Latest.URL, r.Latest.Number)
+				it.line = line(it.line, " ", run(r.Latest))
 			}
-			if mark, text := inProgress(r); text != "" {
-				s += " · " + mark + " " + text
+			if mark, els := inProgress(r); els != nil {
+				it.line = line(it.line, " · "+mark+" ", els)
 			}
-			other = append(other, s)
+			other = append(other, it)
 		case None:
-			other = append(other, markOther+" "+name(r)+on(r)+": no runs yet")
+			other = append(other, slackItem{line: line(markOther+" ", name(r, false), on+": no runs yet")})
 		case Passing:
-			s := markPassing + " " + name(r)
-			if mark, text := inProgress(r); text != "" {
-				s += " · " + mark + " " + text
+			it := slackItem{line: line(markPassing+" ", name(r, false))}
+			if mark, els := inProgress(r); els != nil {
+				it.line = line(it.line, " · "+mark+" ", els)
 			}
-			passing = append(passing, s)
+			passing = append(passing, it)
 		case Disabled:
-			disabled = append(disabled, markOther+" "+name(r))
+			disabled = append(disabled, slackItem{line: line(markOther+" ", name(r, false))})
 		}
 	}
 
 	blocks := []slackBlock{
 		{Type: "header", Text: &slackText{Type: "plain_text", Text: cut(rep.Summary, slackMaxHeader)}},
-		{Type: "context", Elements: []slackText{{Type: "mrkdwn", Text: slackEscape.Replace(strings.Join(rep.Repos, ", "))}}},
+		{Type: "context", Elements: []slackElem{{Type: "mrkdwn", Text: slackEscape.Replace(strings.Join(rep.Repos, ", "))}}},
 	}
-	groups := []struct {
+	for _, g := range []struct {
 		heading string
-		lines   []string
-	}{{"Failing", failing}, {"Unreadable", unreadable}, {"Other", other}, {"Passing", passing}, {"Disabled", disabled}}
-	room := slackMaxBlocks - len(blocks) - 1 // the last block is the footer
-	for i, g := range groups {
-		if len(g.lines) == 0 {
-			continue
-		}
-		later := 0 // keep a block for each group still to come
-		for _, h := range groups[i+1:] {
-			if len(h.lines) > 0 {
-				later++
-			}
-		}
-		for _, s := range pack(fmt.Sprintf("*%s (%d)*", g.heading, len(g.lines)), g.lines, room-later) {
-			blocks = append(blocks, slackBlock{Type: "section", Text: &slackText{Type: "mrkdwn", Text: s}})
-			room--
+		items   []slackItem
+	}{{"Failing", failing}, {"Unreadable", unreadable}, {"Other", other}, {"Passing", passing}, {"Disabled", disabled}} {
+		if len(g.items) > 0 {
+			blocks = append(blocks, slackGroup(fmt.Sprintf("%s (%d)", g.heading, len(g.items)), g.items))
 		}
 	}
-
 	footer := rep.Generated.In(loc).Format("Jan 2, 3:04 PM MST") + " · gh-ci-status"
 	if rep.Version != "" {
 		footer += " " + rep.Version
 	}
-	blocks = append(blocks, slackBlock{Type: "context", Elements: []slackText{{Type: "mrkdwn", Text: slackEscape.Replace(footer)}}})
+	blocks = append(blocks, slackBlock{Type: "context", Elements: []slackElem{{Type: "mrkdwn", Text: slackEscape.Replace(footer)}}})
 	return json.Marshal(struct {
 		Text   string       `json:"text"`
 		Blocks []slackBlock `json:"blocks"`
 	}{slackEscape.Replace(rep.Summary), blocks})
 }
 
-// pack puts heading and lines, one per line, into at most max sections of
-// Slack's size; when they do not all fit, the last section ends in
-// "and N more".
-func pack(heading string, lines []string, max int) []string {
-	var secs []string
-	cur := heading
-	for i, l := range lines {
-		l = cut(l, slackMaxSection-len(heading)-slackMoreRoom)
-		if len(cur)+1+len(l) > slackMaxSection-slackMoreRoom {
-			if len(secs)+1 >= max {
-				return append(secs, cur+fmt.Sprintf("\nand %d more", len(lines)-i))
-			}
-			secs = append(secs, cur)
-			cur = l
-			continue
+// slackGroup is one group as rich text: the heading in bold, then a bulleted
+// list with an item per workflow and its details as an indented item, at
+// most slackMaxItems workflows and "and N more".
+func slackGroup(heading string, items []slackItem) slackBlock {
+	els := []slackElem{{Type: "rich_text_section", Elements: []slackElem{{Type: "text", Text: heading, Style: map[string]bool{"bold": true}}}}}
+	add := func(indent int, line []slackElem) {
+		item := slackElem{Type: "rich_text_section", Elements: line}
+		if last := &els[len(els)-1]; last.Type == "rich_text_list" && last.Indent == indent {
+			last.Elements = append(last.Elements, item)
+			return
 		}
-		cur += "\n" + l
+		els = append(els, slackElem{Type: "rich_text_list", Style: "bullet", Indent: indent, Elements: []slackElem{item}})
 	}
-	return append(secs, cur)
+	for i, it := range items {
+		if i == slackMaxItems {
+			add(0, []slackElem{{Type: "text", Text: fmt.Sprintf("and %d more", len(items)-i)}})
+			break
+		}
+		add(0, it.line)
+		if it.details != nil {
+			add(1, it.details)
+		}
+	}
+	return slackBlock{Type: "rich_text", Elements: els}
 }
 
 // cut shortens s to at most n bytes, on a character boundary.
