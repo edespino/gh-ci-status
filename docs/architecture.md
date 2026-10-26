@@ -146,7 +146,7 @@ them after five lines.
 
 ## Planned: MCP server
 
-An MCP server would use the `cistatus` package directly. A first set of read-only tools:
+The next item on the [roadmap](../ROADMAP.md). An MCP server would use the `cistatus` package directly. A first set of read-only tools:
 
 - `status`: the JSON report for everything watched (`NewReport`).
 - `check`: the setup checks.

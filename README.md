@@ -317,11 +317,9 @@ to a GitHub release with build attestations, and makes the new version installab
 
 ## Roadmap
 
-- An MCP server, so AI assistants can read the same status (the `cistatus` library and the JSON
-  report are its base).
-- Sending to Slack from the terminal (`gh ci-status slack`), for scheduled posts, with the same
-  message.
-- A theme choice on the pages: system, light and dark.
+Next is an MCP server mode, `gh ci-status mcp`, so AI assistants can read the same status. Then
+sending to Slack from the terminal, and a theme choice on the pages. See
+[ROADMAP.md](ROADMAP.md).
 
 ## License
 
