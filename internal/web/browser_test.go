@@ -462,6 +462,8 @@ func statusPage(t *testing.T, rows []Row, beforeScript, probe string, flags ...s
 // A row with a run in progress moves an amber band down its stripe; the
 // stripe keeps the result's colour, grey when no run has finished. With
 // reduced motion nothing moves: the stripe's lower half is amber instead.
+// Both runs set the preference, because CI's macOS runners ask for reduced
+// motion.
 func TestRunInProgressStripeMoves(t *testing.T) {
 	chrome(t)
 	rows := filterRows()
@@ -476,7 +478,7 @@ func TestRunInProgressStripeMoves(t *testing.T) {
   document.body.setAttribute("data-result", [matchMedia("(prefers-reduced-motion: reduce)").matches, moving, band,
     getComputedStyle(row("Build")).borderLeftColor, getComputedStyle(row("New")).borderLeftColor,
     getComputedStyle(row("Green"), "::before").content].join("|"));`
-	if got := statusPage(t, rows, ``, probe); got != "false|Build,New|true|rgb(220, 38, 38)|rgb(161, 161, 170)|none" {
+	if got := statusPage(t, rows, ``, probe, "--force-prefers-no-reduced-motion"); got != "false|Build,New|true|rgb(220, 38, 38)|rgb(161, 161, 170)|none" {
 		t.Errorf("got %q", got)
 	}
 	if got := statusPage(t, rows, ``, probe, "--force-prefers-reduced-motion"); got != "true||true|rgb(220, 38, 38)|rgb(161, 161, 170)|none" {
