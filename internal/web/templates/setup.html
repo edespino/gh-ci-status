@@ -64,7 +64,7 @@ form.slack button{grid-column:2;justify-self:start}
 <p class="hint">Type owner/name or paste the repository's GitHub address. gh-ci-status checks that your GitHub login can read it and that it has GitHub Actions workflows, then opens Configure so you can choose which workflows to watch.</p>
 {{with .Problem}}<p class="error" id="problem"><b>{{.Name}}:</b> {{.Detail}}{{with .Fix}}<br>{{.}}{{end}}</p>{{end}}
 
-<h2>Slack</h2>
+<h2 id="slack">Slack</h2>
 {{if .Slack}}<div class="repo-item"><span class="grow">Send to Slack posts to <b>{{.Slack}}</b>.</span>
 <form class="inline" method="post" action="/slack/remove?key={{.Key}}" data-busy="Saving…" data-confirm="Forget the Slack webhook? The Send to Slack button goes away until you add one again."><button type="submit">Remove</button></form>
 </div>

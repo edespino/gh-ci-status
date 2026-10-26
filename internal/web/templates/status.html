@@ -48,6 +48,7 @@ a{color:var(--link)}.gap{height:12px}
 <div class="actions">
 <form method="post" action="/refresh?key={{.Key}}" data-busy="Refreshing from GitHub…"><button class="btn" type="submit">{{template "icon-refresh"}}Refresh</button></form>
 {{with .Slack}}<form method="post" action="/slack/send?key={{$.Key}}" data-busy="Reading GitHub and sending to Slack…" data-confirm="Send the status to {{.}}?"><button class="btn" type="submit" title="read GitHub again and post the status to {{.}}">{{template "icon-send"}}Send to Slack</button></form>
+{{else}}<a class="btn" href="/setup?key={{.Key}}#slack" data-busy="Loading Setup…" title="set up a Slack channel to send the status to">{{template "icon-send"}}Send to Slack</a>
 {{end}}<a class="btn" href="/configure?key={{.Key}}" data-busy="Loading Configure…" title="choose what to watch">{{template "icon-gear"}}Configure</a>
 </div>
 </header>

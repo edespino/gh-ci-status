@@ -115,8 +115,9 @@ The status page can post the status to one Slack channel, when you press **Send 
    (`https://hooks.slack.com/services/...`).
 2. On the **Setup** page, paste it under **Slack**, with the name to show for it (for example
    `#ci-status`), and press **Save**.
-3. The status page now has **Send to Slack**. It asks first, reads GitHub again, posts the
-   result and shows what it sent, with "Sent to #ci-status." or Slack's answer if it refused.
+3. **Send to Slack** on the status page now posts (until a webhook is saved, it opens Setup's
+   Slack section). It asks first, reads GitHub again, posts the result and shows what it sent,
+   with "Sent to #ci-status." or Slack's answer if it refused.
 
 The message has the summary, each red row with its failed step, the runs since the last green
 one and any run in progress, then the other rows in short lists. Links go to GitHub; the page's

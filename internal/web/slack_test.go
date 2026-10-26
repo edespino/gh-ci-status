@@ -106,17 +106,24 @@ func TestSlackSetupSaveAndRemove(t *testing.T) {
 	}
 }
 
-// The status page offers Send to Slack, with a confirmation, only once a
-// webhook is set.
+// The status page always shows Send to Slack: without a webhook it opens
+// Setup's Slack section; with one it posts, after a confirmation.
 func TestStatusSendButton(t *testing.T) {
 	s, f, _ := newTestServer(t)
 	serveRepo(f, "b.yml")
 	writeConfig(t, s, mainWatch)
-	if page := do(s, "GET", keyed("/"), host, nil).Body.String(); strings.Contains(page, "/slack/send") {
-		t.Fatal("Send to Slack without a webhook")
+	page := do(s, "GET", keyed("/"), host, nil).Body.String()
+	if strings.Contains(page, "/slack/send") || !strings.Contains(page, `href="/setup?key=`+testKey+`#slack"`) {
+		t.Fatalf("without a webhook Send to Slack should open Setup's Slack section: %s", page)
+	}
+	if setup := do(s, "GET", keyed("/setup"), host, nil).Body.String(); !strings.Contains(setup, `<h2 id="slack">Slack</h2>`) {
+		t.Error("Setup's Slack section has no anchor")
 	}
 	saveSlack(t, s)
-	page := do(s, "GET", keyed("/"), host, nil).Body.String()
+	page = do(s, "GET", keyed("/"), host, nil).Body.String()
+	if strings.Contains(page, "#slack") {
+		t.Error("with a webhook Send to Slack should post, not open Setup")
+	}
 	for _, want := range []string{`action="/slack/send?key=` + testKey + `"`, `data-confirm="Send the status to #ci-status?"`, "Send to Slack</button>"} {
 		if !strings.Contains(page, want) {
 			t.Errorf("status page lacks %s", want)
