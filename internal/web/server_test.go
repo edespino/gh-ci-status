@@ -58,7 +58,8 @@ func TestRootRendersStatus(t *testing.T) {
 	serveRepo(f, "b.yml")
 	writeConfig(t, s, Watch{Workflow: "b.yml", Branch: "main"})
 	rec := do(s, "GET", keyed("/"), host, nil)
-	if rec.Code != 200 || !strings.Contains(rec.Body.String(), "WF b.yml") || !strings.Contains(rec.Body.String(), "passing #1") {
+	if rec.Code != 200 || !strings.Contains(rec.Body.String(), "WF b.yml") || !strings.Contains(rec.Body.String(), "passing #1") ||
+		!strings.Contains(rec.Body.String(), `title="read from GitHub Oct 24, 5:00 AM PDT">read 5:00 AM</span>`) {
 		t.Fatalf("code %d body %s", rec.Code, rec.Body.String())
 	}
 }
@@ -410,7 +411,7 @@ func TestUnwatchAllKeepsRepo(t *testing.T) {
 		t.Fatalf("code %d cfg %+v", rec.Code, cfg)
 	}
 	page := do(s, "GET", keyed("/"), host, nil)
-	if body := page.Body.String(); page.Code != 200 || !strings.Contains(body, "nothing watched") || strings.Contains(body, `class="row `) || !strings.Contains(body, "Choose workflows") {
+	if body := page.Body.String(); page.Code != 200 || !strings.Contains(body, "Nothing watched.") || strings.Contains(body, `class="row `) || !strings.Contains(body, "Choose workflows") {
 		t.Fatalf("status after remove all: %d %s", page.Code, body)
 	}
 }

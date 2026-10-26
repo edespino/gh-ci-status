@@ -29,7 +29,7 @@ func TestMain(m *testing.M) {
 func statusHTML(t *testing.T, rows ...Row) string {
 	t.Helper()
 	var b bytes.Buffer
-	p := StatusPage{Repos: []string{testRepo}, Summary: cistatus.Summary(rows), Generated: "Oct 24, 5:00 AM PDT", Rows: rows}
+	p := StatusPage{Repos: []string{testRepo}, Summary: cistatus.Summary(rows), Generated: "Oct 24, 5:00 AM PDT", ReadAt: "5:00 AM", Rows: rows}
 	if err := renderStatus(&b, p); err != nil {
 		t.Fatal(err)
 	}
@@ -126,12 +126,22 @@ func TestOtherNoneErrorText(t *testing.T) {
 	}
 }
 
+// The header names the repository and when GitHub was read (beside Refresh,
+// the full time on hover); the counts are on the filter buttons, not here.
 func TestStatusHeaderAndActions(t *testing.T) {
 	html := statusHTML(t, redRow())
-	for _, want := range []string{"1 failing, oldest 10 days", "Oct 24, 5:00 AM PDT", `action="/refresh?key=`, `method="post"`, `href="/configure?key=`} {
-		if !strings.Contains(html, want) {
-			t.Errorf("page lacks %q", want)
+	header := regexp.MustCompile(`(?s)<header>.*?</header>`).FindString(html)
+	for _, want := range []string{`<p class="sub">` + testRepo + `</p>`, `<span class="read" title="read from GitHub Oct 24, 5:00 AM PDT">read 5:00 AM</span>`,
+		`action="/refresh?key=`, `method="post"`, `href="/configure?key=`} {
+		if !strings.Contains(header, want) {
+			t.Errorf("header lacks %q:\n%s", want, header)
 		}
+	}
+	if strings.Contains(header, "1 failing") || strings.Contains(header, "generated") {
+		t.Errorf("the summary is still in the header:\n%s", header)
+	}
+	if strings.Index(header, `class="read"`) > strings.Index(header, `action="/refresh`) {
+		t.Error("the time should come before Refresh")
 	}
 }
 
@@ -298,7 +308,7 @@ func TestConfigurePageRemoveControls(t *testing.T) {
 
 func TestStatusNothingWatched(t *testing.T) {
 	html := statusHTML(t)
-	if !strings.Contains(html, "nothing watched") || !regexp.MustCompile(`Nothing watched\. <a href="/configure\?key=[^"]*"[^>]*>Choose workflows</a> to watch\.`).MatchString(html) {
+	if !regexp.MustCompile(`Nothing watched\. <a href="/configure\?key=[^"]*"[^>]*>Choose workflows</a> to watch\.`).MatchString(html) {
 		t.Fatalf("no empty state: %s", html)
 	}
 	var b bytes.Buffer

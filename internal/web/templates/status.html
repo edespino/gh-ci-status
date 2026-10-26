@@ -12,8 +12,9 @@
 body{background:var(--bg);color:var(--fg);font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;margin:24px auto;max-width:1100px;padding:0 16px}
 header{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;margin-bottom:12px}
 .wordmark{display:block;flex:none;color:var(--muted)}
-h1{font-size:20px;margin:0}.sub{color:var(--muted);margin:0;flex:1 1 400px}
+h1{font-size:20px;margin:0}.sub{color:var(--muted);margin:0;flex:1 1 160px}
 .actions{display:flex;gap:12px;align-items:center}.actions form{margin:0}
+.read{color:var(--muted);font:12px ui-monospace,Menlo,monospace;white-space:nowrap}
 button{background:var(--btn);color:var(--fg);border:0;border-radius:4px;padding:5px 12px;font:inherit;cursor:pointer}
 button.btn,.btn{display:inline-flex;align-items:center;gap:6px;background:var(--btn);color:var(--fg);text-decoration:none;border-radius:4px;padding:5px 12px}
 .btn svg{width:16px;height:16px}
@@ -44,9 +45,10 @@ a{color:var(--link)}.gap{height:12px}
 <body{{if .SkipConfirm}} data-skip-confirm{{end}}>
 <header>
 <h1>{{wordmark}}</h1>
-<p class="sub">{{with .RepoList}}{{.}} · {{end}}{{.Summary}} · generated {{.Generated}}</p>
+<p class="sub">{{.RepoList}}</p>
 <div class="actions">
-<form method="post" action="/refresh?key={{.Key}}" data-busy="Refreshing from GitHub…"><button class="btn" type="submit">{{template "icon-refresh"}}Refresh</button></form>
+{{with .ReadAt}}<span class="read" title="read from GitHub {{$.Generated}}">read {{.}}</span>
+{{end}}<form method="post" action="/refresh?key={{.Key}}" data-busy="Refreshing from GitHub…"><button class="btn" type="submit">{{template "icon-refresh"}}Refresh</button></form>
 {{with .Slack}}<form method="post" action="/slack/send?key={{$.Key}}" data-busy="Reading GitHub and sending to Slack…" data-confirm="Send the status to {{.}}?"><button class="btn" type="submit" title="read GitHub again and post the status to {{.}}">{{template "icon-send"}}Send to Slack</button></form>
 {{else}}<a class="btn" href="/setup?key={{.Key}}&amp;from=status#slack" data-busy="Loading Settings…" title="set up a Slack channel to send the status to">{{template "icon-send"}}Send to Slack</a>
 {{end}}<a class="btn" href="/configure?key={{.Key}}" data-busy="Loading Workflows…" title="choose which workflows to watch">{{template "icon-checklist"}}Workflows</a>

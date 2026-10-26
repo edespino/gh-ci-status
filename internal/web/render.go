@@ -38,6 +38,7 @@ var wordmarkHTML = template.HTML(banner.SVG(false))
 type StatusPage struct {
 	Repos              []string
 	Summary, Generated string
+	ReadAt             string // when GitHub was read, for beside Refresh ("2:26 PM")
 	Error              string
 	Key                string // carried in every link and form action
 	Rows               []cistatus.Row

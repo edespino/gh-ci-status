@@ -221,7 +221,8 @@ func (s *Server) status(w http.ResponseWriter, r *http.Request) {
 // readStatus reads GitHub for everything watched; setup is true when nothing
 // is set up yet, and the user belongs on Setup.
 func (s *Server) readStatus(ctx context.Context) (p StatusPage, code int, setup bool) {
-	p = StatusPage{Generated: localTime(s.now()), Key: s.key, Version: s.version}
+	now := s.now()
+	p = StatusPage{Generated: localTime(now), ReadAt: readTime(now, now), Key: s.key, Version: s.version}
 	cfg, _, err := cistatus.LoadConfig(s.dir)
 	if err != nil {
 		p.Summary, p.Error = "configuration unreadable", err.Error()+". Open Settings and add a repository to replace it."
