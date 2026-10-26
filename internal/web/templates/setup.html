@@ -42,7 +42,7 @@ form.slack button{grid-column:2;justify-self:start}
 {{wordmark}}
 <h1>Settings</h1>
 <span class="sub">GitHub login, repositories and Slack</span>
-{{if .AnyWatched}}<a class="done" href="/?key={{.Key}}" data-busy="Reading GitHub…" title="the status page">Status</a>{{end}}
+{{with .BackURL}}<a class="done" href="{{.}}" data-busy="{{$.BackBusy}}" title="back to the page you came from">{{$.BackLabel}}</a>{{end}}
 </header>
 {{if .Error}}<p class="error">{{.Error}}</p>{{end}}
 
@@ -52,11 +52,11 @@ form.slack button{grid-column:2;justify-self:start}
 <h2 id="repositories">Repositories</h2>
 {{range .Repos}}<div class="repo-item"><span class="mono">{{.}}</span>
 <a href="/configure?key={{$.Key}}&amp;repo={{.}}" data-busy="Loading Workflows…">Workflows</a>
-<form class="inline" method="post" action="/setup/remove?key={{$.Key}}" data-busy="Saving…" data-confirm="Stop watching {{.}} and forget its workflows?"><input type="hidden" name="repo" value="{{.}}"><button type="submit">Remove</button></form>
+<form class="inline" method="post" action="/setup/remove?key={{$.Key}}" data-busy="Saving…" data-confirm="Stop watching {{.}} and forget its workflows?">{{template "settings-from" $}}<input type="hidden" name="repo" value="{{.}}"><button type="submit">Remove</button></form>
 </div>
 {{else}}<p class="sub">No repository yet. Add the first one below.</p>
 {{end}}
-<form class="add" method="post" action="/setup/add?key={{.Key}}" data-busy="Checking the repository with GitHub…">
+<form class="add" method="post" action="/setup/add?key={{.Key}}" data-busy="Checking the repository with GitHub…">{{template "settings-from" .}}
 <label for="repo">Add a repository</label>
 <input id="repo" name="repo" type="text" placeholder="owner/name" value="{{.Repo}}" required autofocus spellcheck="false" autocomplete="off">
 <button type="submit" class="primary">Add</button>
@@ -66,9 +66,9 @@ form.slack button{grid-column:2;justify-self:start}
 
 <h2 id="slack">Slack</h2>
 {{if .Slack}}<div class="repo-item"><span class="grow">Send to Slack posts to <b>{{.Slack}}</b>.</span>
-<form class="inline" method="post" action="/slack/remove?key={{.Key}}" data-busy="Saving…" data-confirm="Forget the Slack webhook? The Send to Slack button goes away until you add one again."><button type="submit">Remove</button></form>
+<form class="inline" method="post" action="/slack/remove?key={{.Key}}" data-busy="Saving…" data-confirm="Forget the Slack webhook? The Send to Slack button goes away until you add one again.">{{template "settings-from" .}}<button type="submit">Remove</button></form>
 </div>
-{{else}}<form class="slack" method="post" action="/slack/save?key={{.Key}}" data-busy="Saving…">
+{{else}}<form class="slack" method="post" action="/slack/save?key={{.Key}}" data-busy="Saving…">{{template "settings-from" .}}
 <label for="webhook">Incoming webhook</label>
 <input id="webhook" name="webhook" type="password" placeholder="https://hooks.slack.com/services/…" required spellcheck="false" autocomplete="off">
 <label for="label">Shown as</label>
@@ -79,7 +79,7 @@ form.slack button{grid-column:2;justify-self:start}
 {{end}}{{with .SlackProblem}}<p class="error" id="slack-problem">{{.}}</p>{{end}}
 
 <h2 id="confirm">Confirmations</h2>
-<form method="post" action="/settings/confirm?key={{.Key}}" data-busy="Saving…">
+<form method="post" action="/settings/confirm?key={{.Key}}" data-busy="Saving…">{{template "settings-from" .}}
 <div class="repo-item"><span class="grow">{{if .SkipConfirm}}Remove, Remove all, Watch N shown and Send to Slack run without asking.{{else}}Remove, Remove all, Watch N shown and Send to Slack ask before they act.{{end}}</span>
 <input type="hidden" name="ask" value="{{if .SkipConfirm}}on{{else}}off{{end}}"><button type="submit">{{if .SkipConfirm}}Ask first{{else}}Don't ask{{end}}</button></div>
 </form>
@@ -88,3 +88,4 @@ form.slack button{grid-column:2;justify-self:start}
 {{template "busy" .}}
 </body>
 </html>
+{{define "settings-from"}}{{with .From}}<input type="hidden" name="from" value="{{.}}">{{end}}{{with .FromRepo}}<input type="hidden" name="from_repo" value="{{.}}">{{end}}{{end}}

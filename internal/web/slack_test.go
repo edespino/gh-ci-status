@@ -87,7 +87,7 @@ func TestSlackSetupSaveAndRemove(t *testing.T) {
 		t.Fatal("a refused address was saved")
 	}
 	rec = do(s, "POST", keyed("/slack/save"), host, url.Values{"webhook": {" " + testWebhook + "\n"}, "label": {"#ci-status"}})
-	if rec.Code != 303 || rec.Header().Get("Location") != "/setup?key="+testKey {
+	if rec.Code != 303 || rec.Header().Get("Location") != "/setup?key="+testKey+"#slack" {
 		t.Fatalf("save: code %d location %q", rec.Code, rec.Header().Get("Location"))
 	}
 	page = do(s, "GET", keyed("/setup"), host, nil).Body.String()
@@ -113,8 +113,8 @@ func TestStatusSendButton(t *testing.T) {
 	serveRepo(f, "b.yml")
 	writeConfig(t, s, mainWatch)
 	page := do(s, "GET", keyed("/"), host, nil).Body.String()
-	if strings.Contains(page, "/slack/send") || !strings.Contains(page, `href="/setup?key=`+testKey+`#slack"`) {
-		t.Fatalf("without a webhook Send to Slack should open Setup's Slack section: %s", page)
+	if strings.Contains(page, "/slack/send") || !strings.Contains(page, `href="/setup?key=`+testKey+`&amp;from=status#slack"`) {
+		t.Fatalf("without a webhook Send to Slack should open the Slack section of Settings: %s", page)
 	}
 	if setup := do(s, "GET", keyed("/setup"), host, nil).Body.String(); !strings.Contains(setup, `<h2 id="slack">Slack</h2>`) {
 		t.Error("Setup's Slack section has no anchor")

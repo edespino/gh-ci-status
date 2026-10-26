@@ -361,7 +361,7 @@ func TestConfigurePageCarriesKeyAndRepo(t *testing.T) {
 	body := do(s, "GET", keyed("/configure")+"&repo="+testRepo, host, nil).Body.String()
 	for _, want := range []string{`href="/?key=` + testKey + `"`, `action="/unwatch?key=` + testKey + `"`,
 		`action="/watch?key=` + testKey + `"`, `action="/watch-many?key=` + testKey + `"`, "WF b.yml", "WF extra.yml",
-		`<input type="hidden" name="repo" value="` + testRepo + `">`, `href="/setup?key=` + testKey + `#repositories"`} {
+		`<input type="hidden" name="repo" value="` + testRepo + `">`, `href="/setup?key=` + testKey + `&amp;from=workflows&amp;from_repo=example-org%2fexample-repo"`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("configure page lacks %s", want)
 		}

@@ -5,6 +5,7 @@ package web
 import (
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 
 	cistatus "github.com/edespino/gh-ci-status"
@@ -27,7 +28,44 @@ type SetupPage struct {
 	SlackProblem string
 	SkipConfirm  bool   // confirmed actions run without asking
 	PrefsProblem string // prefs.json could not be read
-	AnyWatched   bool   // something is watched in some repository: Status shows
+	// From and FromRepo are the page Settings was opened from ("status", or
+	// "workflows" and its repository); its forms carry them, so the back
+	// button keeps working after them.
+	From, FromRepo string
+	// Back is the header button to that page: Status, or Workflows for
+	// FromRepo; none while the status page would be empty.
+	BackLabel, BackURL, BackBusy string
+}
+
+// settingsFrom is the page Settings was opened from, as the request says
+// (query or form); anything else is ignored.
+func settingsFrom(r *http.Request) (from, fromRepo string) {
+	switch r.FormValue("from") {
+	case "status":
+		return "status", ""
+	case "workflows":
+		if repo := r.FormValue("from_repo"); cistatus.ValidRepo(repo) {
+			return "workflows", repo
+		}
+	}
+	return "", ""
+}
+
+// settingsURL is Settings, remembering the page it was opened from, at
+// anchor (for example "#slack").
+func (s *Server) settingsURL(r *http.Request, anchor string) string {
+	v := url.Values{}
+	if from, repo := settingsFrom(r); from != "" {
+		v.Set("from", from)
+		if repo != "" {
+			v.Set("from_repo", repo)
+		}
+	}
+	u := s.withKey("/setup")
+	if len(v) > 0 {
+		u += "&" + v.Encode()
+	}
+	return u + anchor
 }
 
 func (s *Server) setupPage(w http.ResponseWriter, r *http.Request) {
@@ -52,7 +90,14 @@ func (s *Server) renderSetup(w http.ResponseWriter, r *http.Request, code int, p
 	if err != nil {
 		p.Error = err.Error() + ". Adding a repository here replaces the file."
 	}
-	p.Repos, p.AnyWatched = cfg.RepoNames(), anyWatched(cfg)
+	p.Repos = cfg.RepoNames()
+	p.From, p.FromRepo = settingsFrom(r)
+	switch {
+	case p.From == "workflows" && cfg.HasRepo(p.FromRepo):
+		p.BackLabel, p.BackURL, p.BackBusy = "Workflows", s.configureURL(p.FromRepo), "Loading Workflows…"
+	case anyWatched(cfg):
+		p.BackLabel, p.BackURL, p.BackBusy = "Status", s.withKey("/"), "Reading GitHub…"
+	}
 	if client, err := s.client(r.Context()); err != nil {
 		p.Login = cistatus.Check{Name: "GitHub login", Detail: err.Error(), Fix: "Run 'gh auth login', then reload this page"}
 	} else {
@@ -116,7 +161,7 @@ func (s *Server) removeRepo(w http.ResponseWriter, r *http.Request) {
 	s.mu.Lock()
 	delete(s.kept, repo)
 	s.mu.Unlock()
-	http.Redirect(w, r, s.withKey("/setup"), http.StatusSeeOther)
+	http.Redirect(w, r, s.settingsURL(r, "#repositories"), http.StatusSeeOther)
 }
 
 // saveSlack checks and saves the Slack webhook. A refused address is not
@@ -133,7 +178,7 @@ func (s *Server) saveSlack(w http.ResponseWriter, r *http.Request) {
 		s.renderSetup(w, r, http.StatusBadRequest, SetupPage{SlackLabel: label, SlackProblem: err.Error()})
 		return
 	}
-	http.Redirect(w, r, s.withKey("/setup"), http.StatusSeeOther)
+	http.Redirect(w, r, s.settingsURL(r, "#slack"), http.StatusSeeOther)
 }
 
 // removeSlack forgets the Slack webhook.
@@ -142,5 +187,5 @@ func (s *Server) removeSlack(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "removing failed: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
-	http.Redirect(w, r, s.withKey("/setup"), http.StatusSeeOther)
+	http.Redirect(w, r, s.settingsURL(r, "#slack"), http.StatusSeeOther)
 }

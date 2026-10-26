@@ -341,7 +341,7 @@ func TestStatusWorkflowsAndSettingsButtons(t *testing.T) {
 	}
 	for _, c := range []struct{ href, icon, label string }{
 		{`/configure\?key=`, checklist.String(), "Workflows</a>"},
-		{`/setup\?key=[0-9a-f]*"`, gear.String(), "Settings</a>"},
+		{`/setup\?key=[0-9a-f]*&amp;from=status"`, gear.String(), "Settings</a>"},
 	} {
 		tag := regexp.MustCompile(`<a [^>]*href="` + c.href + `[^>]*>(?s:.*?)</a>`).FindString(html)
 		for _, want := range []string{`class="btn"`, "data-busy=", c.icon, c.label} {
@@ -355,10 +355,25 @@ func TestStatusWorkflowsAndSettingsButtons(t *testing.T) {
 	}
 }
 
-// Workflows' "+ Add repository" opens the Repositories section of Settings.
-func TestWorkflowsAddRepositoryLink(t *testing.T) {
-	if !strings.Contains(configureHTML(t), `<a href="/setup?key=`+testKey+`#repositories" data-busy="Loading Settings…">+ Add repository</a>`) {
-		t.Error("+ Add repository does not open Settings' Repositories section")
+// Workflows reaches Settings as the status page does: a gear button in the
+// header, which tells Settings to come back to this repository's Workflows.
+func TestWorkflowsSettingsButton(t *testing.T) {
+	html := configureHTML(t)
+	var gear bytes.Buffer
+	if err := templates.ExecuteTemplate(&gear, "icon-gear", nil); err != nil {
+		t.Fatal(err)
+	}
+	tag := regexp.MustCompile(`<header>(?s:.*?)(<a [^>]*href="/setup[^"]*"[^>]*>(?s:.*?)</a>)(?s:.*?)</header>`).FindStringSubmatch(html)
+	if tag == nil {
+		t.Fatal("no Settings button in the Workflows header")
+	}
+	for _, want := range []string{`class="btn"`, `href="/setup?key=` + testKey + `&amp;from=workflows&amp;from_repo=example-org%2fexample-repo"`, "data-busy=", gear.String() + "Settings</a>"} {
+		if !strings.Contains(tag[1], want) {
+			t.Errorf("Settings button %q lacks %s", tag[1], want)
+		}
+	}
+	if strings.Contains(html, "+ Add repository") {
+		t.Error("Workflows still reaches Settings through + Add repository")
 	}
 }
 

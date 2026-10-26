@@ -77,5 +77,5 @@ func (s *Server) setConfirm(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "saving failed: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
-	http.Redirect(w, r, s.withKey("/setup")+"#confirm", http.StatusSeeOther)
+	http.Redirect(w, r, s.settingsURL(r, "#confirm"), http.StatusSeeOther)
 }

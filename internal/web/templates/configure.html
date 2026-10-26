@@ -26,6 +26,7 @@ button{background:var(--btn);color:var(--fg);border:0;border-radius:4px;padding:
 button:disabled{opacity:.5;cursor:default}
 form.inline{display:inline;margin:0}
 .btn{display:inline-flex;align-items:center;gap:6px}.btn svg{width:16px;height:16px}
+a.btn{flex:none;background:var(--btn);color:var(--fg);text-decoration:none;border-radius:4px;padding:3px 10px}
 a{color:var(--link)}
 .dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--none);flex:none;vertical-align:middle}
 .dot.bad{background:var(--bad)}.dot.ok{background:var(--ok)}.dot.run{background:var(--run)}
@@ -62,12 +63,12 @@ nav.repos a.repo.on{outline:2px solid var(--link)}
 {{if .ReadAt}}<span class="read mono" title="this page keeps what it read from GitHub until you press Refresh">read {{.ReadAt}}</span>
 <form class="inline" method="post" action="/configure/refresh?key={{.Key}}" data-busy="Reading GitHub…"><input type="hidden" name="repo" value="{{$.Repo}}"><button class="btn" type="submit">{{template "icon-refresh"}}Refresh</button></form>{{end}}
 <span id="progress-head" title="Reading statuses…"><span class="spin-sm"></span></span>
+<a class="btn" href="/setup?key={{.Key}}&amp;from=workflows&amp;from_repo={{.Repo}}" data-busy="Loading Settings…" title="GitHub login, repositories and Slack">{{template "icon-gear"}}Settings</a>
 {{if .AnyWatched}}<a class="done" href="/?key={{.Key}}" data-busy="Reading GitHub…" title="the status page">Status</a>{{end}}
 </header>
 <nav class="repos">Repository:
 {{range .Repos}}<a class="repo{{if eq . $.Repo}} on{{end}}" href="/configure?key={{$.Key}}&amp;repo={{.}}" data-busy="Loading Workflows…">{{.}}</a>
-{{end}}<a href="/setup?key={{.Key}}#repositories" data-busy="Loading Settings…">+ Add repository</a>
-</nav>
+{{end}}</nav>
 {{if .Error}}<p class="error">{{.Error}}</p>{{end}}
 
 <div class="section-head">
