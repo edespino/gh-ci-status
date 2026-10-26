@@ -53,7 +53,7 @@ func TestStatusLinks(t *testing.T) {
 		`href="https://github.com/` + testRepo + `/actions/runs/120"`,
 		`href="https://github.com/` + testRepo + `/actions/runs/120/job/902"`,
 		`href="https://github.com/` + testRepo + `/actions/runs/118"`,
-		"red 10 days", "release/x", "Phase 310: Build database (Build B)", "2 failed runs",
+		"failing for 10 days", "release/x", "Phase 310: Build database (Build B)", "2 failed runs since the last passing run <a href=",
 	} {
 		if !strings.Contains(html, want) {
 			t.Errorf("page lacks %s", want)
@@ -78,7 +78,7 @@ func TestRunningAndNeverGreenText(t *testing.T) {
 	partial := never
 	partial.Name, partial.AllHistory, partial.FailedRuns = "Partial", false, 100
 	html := statusHTML(t, never, partial, running)
-	for _, want := range []string{`<span class="spinner" aria-hidden="true"></span>running #9</a>`, "started Oct 24, 4:30 AM PDT", "never green on main", "12 failed runs", "no green in the last 100 main runs"} {
+	for _, want := range []string{`<span class="spinner" aria-hidden="true"></span>running #9</a>`, "started Oct 24, 4:30 AM PDT", "never passed on main", "12 failed runs", "no passing run in the last 100 main runs"} {
 		if !strings.Contains(html, want) {
 			t.Errorf("page lacks %q", want)
 		}
@@ -128,7 +128,7 @@ func TestOtherNoneErrorText(t *testing.T) {
 
 func TestStatusHeaderAndActions(t *testing.T) {
 	html := statusHTML(t, redRow())
-	for _, want := range []string{"1 red, oldest 10 days", "Oct 24, 5:00 AM PDT", `action="/refresh?key=`, `method="post"`, `href="/configure?key=`} {
+	for _, want := range []string{"1 failing, oldest 10 days", "Oct 24, 5:00 AM PDT", `action="/refresh?key=`, `method="post"`, `href="/configure?key=`} {
 		if !strings.Contains(html, want) {
 			t.Errorf("page lacks %q", want)
 		}
@@ -409,7 +409,7 @@ func TestStatusFilterBar(t *testing.T) {
 	green := Row{Repo: testRepo, Watch: mainWatch, Name: "Green", State: Passing, Latest: runAt(50, 5, "main", "completed", "success", "2026-10-23T12:00:00Z")}
 	off := Row{Repo: testRepo, Watch: Watch{Workflow: "old.yml", Branch: "main"}, Name: "Old", State: Disabled, WorkflowState: "disabled_manually"}
 	html := statusHTML(t, redRow(), green, off)
-	for _, want := range []string{`id="filter"`, `data-filter="all" class="on">All 3<`, `data-filter="failing">Red 1<`,
+	for _, want := range []string{`id="filter"`, `data-filter="all" class="on">All 3<`, `data-filter="failing">Failing 1<`,
 		`data-filter="passing">Passing 1<`, `data-filter="disabled">Disabled 1<`, `id="no-match" hidden`,
 		`data-state="failing" data-name="Build B b.yml release/x ` + testRepo + `"`, `[hidden]{display:none!important}`} {
 		if !strings.Contains(html, want) {
@@ -430,7 +430,7 @@ func TestStatusFilterBar(t *testing.T) {
 	first := runAt(60, 1, "main", "queued", "", "2026-10-24T11:20:00Z")
 	never := Row{Repo: testRepo, Watch: Watch{Workflow: "new.yml", Branch: "main"}, Name: "New", State: Running, Latest: first, InProgress: first}
 	html = statusHTML(t, rerun, busy, green, never)
-	for _, want := range []string{`data-filter="failing">Red 1<`, `data-filter="running">Running 3<`, `data-filter="passing">Passing 2<`,
+	for _, want := range []string{`data-filter="failing">Failing 1<`, `data-filter="running">Running 3<`, `data-filter="passing">Passing 2<`,
 		`data-state="failing" data-running="1" data-name="Build B`} {
 		if !strings.Contains(html, want) {
 			t.Errorf("status page lacks %s", want)

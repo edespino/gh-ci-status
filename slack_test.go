@@ -185,11 +185,11 @@ func TestSlackMessage(t *testing.T) {
 	}
 	for _, want := range []string{
 		"*gh-ci-status* · " + testRepo + "\n" + rep.Summary,
-		"*Red (3)*",
-		"*<" + hist("b.yml", "main") + "|Build>* on main · red 10 days · <" + runsURL + "120|#20>\n" +
-			"failed at <https://github.com/x/job/9|Compile (build)> · 2 failed runs since last green <" + runsURL + "118|#18> (Oct 10) · running <" + runsURL + "121|#21>",
-		"*<" + hist("n.yml", "main") + "|Never>* on main · red 23 days · <" + runsURL + "5|#5>\nnever green on main · 3 failed runs",
-		"*<" + hist("o.yml", "main") + "|A &lt;b&gt; &amp; c>* on main · red 1 day · <" + runsURL + "7|#7>\nno green in the last 1 main run",
+		"*Failing (3)*",
+		"*<" + hist("b.yml", "main") + "|Build>* on main · failing for 10 days · <" + runsURL + "120|#20>\n" +
+			"failed at <https://github.com/x/job/9|Compile (build)> · 2 failed runs since the last passing run <" + runsURL + "118|#18> (Oct 10) · running <" + runsURL + "121|#21>",
+		"*<" + hist("n.yml", "main") + "|Never>* on main · failing for 23 days · <" + runsURL + "5|#5>\nnever passed on main · 3 failed runs",
+		"*<" + hist("o.yml", "main") + "|A &lt;b&gt; &amp; c>* on main · failing for 1 day · <" + runsURL + "7|#7>\nno passing run in the last 1 main run",
 		"*Unreadable (1)*\n<" + hist("gone.yml", "dev") + "|gone.yml> on dev: GET /x: 404 Not Found",
 		"*Other (3)*\n",
 		"<" + hist("c.yml", "main") + "|Cancelled> on main: cancelled <" + runsURL + "50|#5>",
@@ -240,7 +240,7 @@ func TestSlackMessageLimits(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, all := decodeSlack(t, b)
-	if !strings.Contains(all, "*Red (60)*") || !strings.Contains(all, "and 20 more red") {
+	if !strings.Contains(all, "*Failing (60)*") || !strings.Contains(all, "and 20 more failing") {
 		t.Errorf("reds: %.400s", all)
 	}
 	if !regexp.MustCompile(`\*Passing \(400\)\*: .*, and \d+ more\n`).MatchString(all) {

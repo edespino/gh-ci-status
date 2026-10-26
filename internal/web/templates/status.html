@@ -65,10 +65,10 @@ a{color:var(--link)}.gap{height:12px}
 <span class="n"><a href="{{historyURL $r.Repo $r.Watch.Workflow $r.Watch.Branch}}">{{$r.Name}}</a><small>{{if $.MultiRepo}}{{$r.Repo}} · {{end}}{{$r.Watch.Workflow}} · {{$r.Watch.Branch}}</small></span>
 {{- if eq $r.State "failing"}}
 <a class="s" href="{{$r.Latest.HTMLURL}}">failing #{{$r.Latest.RunNumber}}</a>
-<span class="d"><b class="age">red {{$r.Age}}</b>{{with $r.FailedStep}} · failed at <a href="{{.URL}}">{{.Label}}</a>{{end}}
-{{- if $r.LastGreen}} · {{plural $r.FailedRuns "failed run"}} since last green <a href="{{$r.LastGreen.HTMLURL}}">#{{$r.LastGreen.RunNumber}} {{localTime $r.LastGreen.CreatedAt}}</a>
-{{- else if $r.AllHistory}} · never green on {{$r.Watch.Branch}} · {{plural $r.FailedRuns "failed run"}}
-{{- else}} · no green in the last {{plural $r.FailedRuns (printf "%s run" $r.Watch.Branch)}}{{end}}{{template "in-progress" $r}}</span>
+<span class="d"><b class="age">failing for {{$r.Age}}</b>{{with $r.FailedStep}} · failed at <a href="{{.URL}}">{{.Label}}</a>{{end}}
+{{- if $r.LastGreen}} · {{plural $r.FailedRuns "failed run"}} since the last passing run <a href="{{$r.LastGreen.HTMLURL}}">#{{$r.LastGreen.RunNumber}} {{localTime $r.LastGreen.CreatedAt}}</a>
+{{- else if $r.AllHistory}} · never passed on {{$r.Watch.Branch}} · {{plural $r.FailedRuns "failed run"}}
+{{- else}} · no passing run in the last {{plural $r.FailedRuns (printf "%s run" $r.Watch.Branch)}}{{end}}{{template "in-progress" $r}}</span>
 {{- else if eq $r.State "running"}}
 <a class="s" href="{{$r.Latest.HTMLURL}}">{{if $r.Latest.Waiting}}{{template "icon-clock"}}{{else}}<span class="spinner" aria-hidden="true"></span>{{end}}{{progress $r.Latest}} #{{$r.Latest.RunNumber}}</a>
 <span class="d">{{if $r.Latest.Waiting}}{{$r.Latest.Status}} since{{else}}started{{end}} {{localTime (started $r.Latest)}}</span>

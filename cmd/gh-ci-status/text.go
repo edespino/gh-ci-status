@@ -22,7 +22,7 @@ func writeText(w io.Writer, rows []cistatus.Row, multiRepo bool) {
 		}
 		switch r.State {
 		case cistatus.Failing:
-			detail = "red " + r.Age
+			detail = "failing for " + r.Age
 		case cistatus.Running:
 			detail = progress(r.Latest) + " since " + detail
 		case cistatus.Other:

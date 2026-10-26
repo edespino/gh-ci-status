@@ -144,17 +144,17 @@ func SlackMessage(rep Report, loc *time.Location) ([]byte, error) {
 
 	blocks := []slackBlock{section("*gh-ci-status* · " + slackEscape.Replace(strings.Join(rep.Repos, ", ")) + "\n" + slackEscape.Replace(rep.Summary))}
 	if reds := groups[Failing]; len(reds) > 0 {
-		blocks = append(blocks, section(fmt.Sprintf("*Red (%d)*", len(reds))))
+		blocks = append(blocks, section(fmt.Sprintf("*Failing (%d)*", len(reds))))
 		for i, r := range reds {
 			if i == slackMaxReds {
 				var names []string
 				for _, r := range reds[i:] {
 					names = append(names, name(r))
 				}
-				blocks = append(blocks, section(joinFit(fmt.Sprintf("and %d more red: ", len(reds)-i), names, ", ")))
+				blocks = append(blocks, section(joinFit(fmt.Sprintf("and %d more failing: ", len(reds)-i), names, ", ")))
 				break
 			}
-			line := "*" + name(r) + "* on " + slackEscape.Replace(r.Branch) + " · red " + r.Age
+			line := "*" + name(r) + "* on " + slackEscape.Replace(r.Branch) + " · failing for " + r.Age
 			if r.Latest != nil {
 				line += fmt.Sprintf(" · <%s|#%d>", r.Latest.URL, r.Latest.Number)
 			}
@@ -164,12 +164,12 @@ func SlackMessage(rep Report, loc *time.Location) ([]byte, error) {
 			}
 			switch {
 			case r.LastGreen != nil:
-				more = append(more, fmt.Sprintf("%s since last green <%s|#%d> (%s)", plural(r.FailedRuns, "failed run"),
+				more = append(more, fmt.Sprintf("%s since the last passing run <%s|#%d> (%s)", plural(r.FailedRuns, "failed run"),
 					r.LastGreen.URL, r.LastGreen.Number, r.LastGreen.CreatedAt.In(loc).Format("Jan 2")))
 			case r.NeverGreen:
-				more = append(more, "never green on "+slackEscape.Replace(r.Branch)+" · "+plural(r.FailedRuns, "failed run"))
+				more = append(more, "never passed on "+slackEscape.Replace(r.Branch)+" · "+plural(r.FailedRuns, "failed run"))
 			default:
-				more = append(more, "no green in the last "+plural(r.FailedRuns, slackEscape.Replace(r.Branch)+" run"))
+				more = append(more, "no passing run in the last "+plural(r.FailedRuns, slackEscape.Replace(r.Branch)+" run"))
 			}
 			if s := running(r); s != "" {
 				more = append(more, s)

@@ -151,7 +151,7 @@ func TestSendToSlack(t *testing.T) {
 		t.Fatalf("Slack got %d posts", len(got))
 	}
 	var msg struct{ Text string }
-	if err := json.Unmarshal([]byte(got[0]), &msg); err != nil || msg.Text != "gh-ci-status: nothing red · 1 passing" || !strings.Contains(got[0], "WF b.yml") {
+	if err := json.Unmarshal([]byte(got[0]), &msg); err != nil || msg.Text != "gh-ci-status: nothing failing · 1 passing" || !strings.Contains(got[0], "WF b.yml") {
 		t.Fatalf("message %v: %s", err, got[0])
 	}
 	reads := len(f.Requests())

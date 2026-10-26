@@ -8,31 +8,31 @@
 </p>
 
 gh-ci-status is a [GitHub CLI](https://cli.github.com) extension that answers one question
-about the GitHub Actions workflows you care about: what is red right now, since when, and
+about the GitHub Actions workflows you care about: what is failing right now, since when, and
 where does it fail?
 
 You choose workflow and branch pairs in one or more repositories. gh-ci-status shows their
 current state as a local web page, as text in the terminal, or as JSON for scripts and tools.
-Reds come first, oldest at the top, each with how long it has been red, the step it fails at,
-and the last green run. It reads GitHub only when you ask, with your own GitHub CLI login,
+Failing workflows come first, the longest failing at the top, each with how long it has been
+failing, the step it fails at, and the last passing run. It reads GitHub only when you ask, with your own GitHub CLI login,
 and keeps everything on your computer. A button can post the status to a Slack channel.
 
 ## What you see
 
 For every watched workflow on a branch, one row:
 
-- **failing:** red for how long, the failed step (linked to its log), how many runs failed
-  since the last green one, and a link to that green run. "Never green" when no run in the
-  workflow's history on that branch passed.
+- **failing:** for how long, the failed step (linked to its log), how many runs failed since the
+  last passing one, and a link to that run. "Never passed" when no run in the workflow's
+  history on that branch passed.
 - **running:** a workflow that has not finished a run on that branch yet (grey stripe), and since
   when.
 - **passing**, **cancelled** and other results, with the time of the run.
 - **no runs** on that branch yet, or **error** when GitHub could not be read.
 - **disabled** (greyed, at the bottom) when the workflow is turned off on GitHub, with its last
-  run. Retiring a workflow by disabling it takes it off the red list.
+  run. Retiring a workflow by disabling it takes it off the failing list.
 
-A run in progress does not change a row: a red workflow stays red, at the same place, while it
-runs again. As on GitHub:
+A run in progress does not change a row: a failing workflow stays failing, at the same place,
+while it runs again. As on GitHub:
 
 - **Running:** the row adds "running #N, started ..." after a spinning amber ring, linked to the
   run, and an amber band moves down its coloured stripe.
@@ -82,7 +82,7 @@ On the first run:
    add several one after another. The two "Watch" buttons skip workflows turned off on GitHub;
    to watch everything else, choose **All**, clear the filter and press **Watch N shown**.
 5. **Done** shows the status page. Press **Refresh** whenever you want it read again. With many
-   rows, the filter box and the state buttons (**Red**, **Passing**, **Disabled** and so on, with
+   rows, the filter box and the state buttons (**Failing**, **Passing**, **Disabled** and so on, with
    counts) narrow the list; the filter stays through **Refresh**. **Workflows** (the checklist
    icon) changes what you watch; **Settings** (the gear) has the GitHub login, the repositories
    and Slack.
@@ -121,8 +121,8 @@ The status page can post the status to one Slack channel, when you press **Send 
    section of Settings). It asks first, reads GitHub again, posts the result and shows what it sent,
    with "Sent to #ci-status." or Slack's answer if it refused.
 
-The message has the summary, each red row with its failed step, the runs since the last green
-one and any run in progress, then the other rows in short lists. Links go to GitHub; the page's
+The message has the summary, each failing row with its failed step, the runs since the last
+passing one and any run in progress, then the other rows in short lists. Links go to GitHub; the page's
 own address is never sent. The webhook address is a secret: it is kept in `slack.json`, readable
 only by you, never shown again, logged or sent anywhere but Slack. **Remove** on Settings forgets
 it.
@@ -142,14 +142,14 @@ it.
 The binary also runs on its own as `gh-ci-status`, with the same commands.
 
 Exit codes: `0` everything was read, `1` something could not be read or a check failed, `2` a
-usage error or nothing set up yet. A red workflow is not an error: it is what gh-ci-status reports.
+usage error or nothing set up yet. A failing workflow is not an error: it is what gh-ci-status reports.
 
 The JSON report has stable field names:
 
 ```json
 {
   "generated": "2026-10-24T12:00:00Z",
-  "summary": "1 red, oldest 10 days · 1 passing",
+  "summary": "1 failing, oldest 10 days · 1 passing",
   "repos": ["octo-org/octo-repo"],
   "rows": [
     {
@@ -201,10 +201,10 @@ flowchart LR
   when you press Send to Slack.
 - **Which run counts.** A row is decided by the newest finished run of the workflow whose branch
   is the watched branch and whose repository is the watched repository, so a run in progress
-  never hides a red one. Runs from forks and `pull_request` runs are ignored: they test someone
+  never hides a failing one. Runs from forks and `pull_request` runs are ignored: they test someone
   else's code or a merge into another branch.
-- **Red since.** The first red run after the last green one. When the whole history on that
-  branch has no green run, the row says "never green".
+- **Failing since.** The first failed run after the last passing one. When the whole history on
+  that branch has no passing run, the row says "never passed".
 - **The Workflows page keeps what it read.** The workflow list, recent branches and status dots
   are read once and reused until you press Refresh there, so changing what you watch is
   instant. The status page always reads fresh and updates what the Workflows page shows.

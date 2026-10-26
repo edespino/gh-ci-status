@@ -178,7 +178,7 @@ func TestTextViewExitCodes(t *testing.T) {
 	serveRepo(f, "b.yml")
 	e := newCLI(t, f)
 	watchIn(t, e, w("b.yml", "main"))
-	if code := run(context.Background(), nil, e.d); code != 0 || !strings.HasPrefix(e.out.String(), "nothing red · 1 passing") {
+	if code := run(context.Background(), nil, e.d); code != 0 || !strings.HasPrefix(e.out.String(), "nothing failing · 1 passing") {
 		t.Fatalf("exit %d out %q", code, e.out.String())
 	}
 	watchIn(t, e, w("b.yml", "main"), w("gone.yml", "main"))
@@ -214,7 +214,7 @@ func TestJSONOutput(t *testing.T) {
 	if rep.Version == "" {
 		t.Error("the JSON report does not name its version")
 	}
-	if len(rep.Rows) != 1 || rep.Rows[0].State != cistatus.Passing || rep.Rows[0].Latest == nil || rep.Summary != "nothing red · 1 passing" ||
+	if len(rep.Rows) != 1 || rep.Rows[0].State != cistatus.Passing || rep.Rows[0].Latest == nil || rep.Summary != "nothing failing · 1 passing" ||
 		len(rep.Repos) != 1 || rep.Repos[0] != testRepo {
 		t.Fatalf("report %+v", rep)
 	}

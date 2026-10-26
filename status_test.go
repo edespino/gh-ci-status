@@ -194,14 +194,14 @@ func TestSummary(t *testing.T) {
 		{Name: "Docs", State: Passing},
 		{Name: "Retired", State: Disabled},
 	}
-	if got := Summary(rows); got != "3 red, oldest 120 days · 2 running · 1 unreadable · 1 other result · 1 with no runs · 2 passing · 1 disabled" {
+	if got := Summary(rows); got != "3 failing, oldest 120 days · 2 running · 1 unreadable · 1 other result · 1 with no runs · 2 passing · 1 disabled" {
 		t.Fatalf("summary = %q", got)
 	}
 	green := make([]Row, 7)
 	for i := range green {
 		green[i].State = Passing
 	}
-	if got := Summary(green); got != "nothing red · 7 passing" {
+	if got := Summary(green); got != "nothing failing · 7 passing" {
 		t.Fatalf("summary = %q", got)
 	}
 	if got := Summary(nil); got != "nothing watched" {

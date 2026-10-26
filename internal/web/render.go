@@ -73,7 +73,7 @@ func (p StatusPage) Filters() []FilterButton {
 		state cistatus.State
 		label string
 	}{
-		{cistatus.Failing, "Red"}, {cistatus.Error, "Unreadable"}, {cistatus.Running, "Running"}, {cistatus.Other, "Other"},
+		{cistatus.Failing, "Failing"}, {cistatus.Error, "Unreadable"}, {cistatus.Running, "Running"}, {cistatus.Other, "Other"},
 		{cistatus.None, "No runs"}, {cistatus.Passing, "Passing"}, {cistatus.Disabled, "Disabled"},
 	} {
 		if counts[s.state] > 0 {

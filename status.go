@@ -228,9 +228,9 @@ func Summary(rows []Row) string {
 			oldest = &rows[i]
 		}
 	}
-	parts := []string{"nothing red"}
+	parts := []string{"nothing failing"}
 	if oldest != nil {
-		parts[0] = fmt.Sprintf("%d red, oldest %s", counts[Failing], oldest.Age)
+		parts[0] = fmt.Sprintf("%d failing, oldest %s", counts[Failing], oldest.Age)
 	}
 	if running > 0 {
 		parts = append(parts, fmt.Sprintf("%d running", running))

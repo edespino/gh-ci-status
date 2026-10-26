@@ -39,7 +39,7 @@ func TestReportJSON(t *testing.T) {
 	}
 	s := string(b)
 	for _, want := range []string{
-		`"generated":"2026-10-24T12:00:00Z"`, `"summary":"4 red, oldest 23 days · 2 running · 1 unreadable · 1 disabled"`, `"repos":["example-org/example-repo"]`,
+		`"generated":"2026-10-24T12:00:00Z"`, `"summary":"4 failing, oldest 23 days · 2 running · 1 unreadable · 1 disabled"`, `"repos":["example-org/example-repo"]`,
 		`"repo":"example-org/example-repo","workflow":"b.yml","name":"Build","branch":"main","state":"failing"`,
 		`"red_since":"2026-10-14T12:00:00Z","age":"10 days","failed_runs":2`,
 		`"failed_step":{"label":"Compile (build)","url":"https://github.com/x/job/9"}`,

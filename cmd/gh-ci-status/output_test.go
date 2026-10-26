@@ -99,7 +99,7 @@ func TestWriteText(t *testing.T) {
 		t.Fatalf("text = %q", b.String())
 	}
 	for i, want := range [][]string{
-		{"failing", "Build B", "release/x", "red 10 days", "/actions/runs/120"},
+		{"failing", "Build B", "release/x", "failing for 10 days", "/actions/runs/120"},
 		{"passing", "Green", "main", "Oct 23, 5:00 AM PDT", "/actions/runs/50"},
 	} {
 		for _, w := range want {
@@ -119,7 +119,7 @@ func TestWriteText(t *testing.T) {
 	if line := strings.Split(b.String(), "\n")[3]; !strings.Contains(line, "Oct 23, 5:00 AM PDT · waiting #6 since Oct 24, 4:10 AM PDT") {
 		t.Errorf("passing line with a waiting run = %q", line)
 	}
-	if line := strings.Split(b.String(), "\n")[1]; !strings.HasPrefix(line, "failing   Build B on release/x  red 10 days · running #21 since Oct 24, 4:00 AM PDT  https://") {
+	if line := strings.Split(b.String(), "\n")[1]; !strings.HasPrefix(line, "failing   Build B on release/x  failing for 10 days · running #21 since Oct 24, 4:00 AM PDT  https://") {
 		t.Errorf("red line with a run in progress = %q", line)
 	}
 	if line := strings.Split(b.String(), "\n")[2]; line != "running   New on main  waiting since Oct 24, 4:20 AM PDT  https://github.com/"+testRepo+"/actions/runs/9" {
