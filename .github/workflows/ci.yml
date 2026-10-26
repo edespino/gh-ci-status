@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-26.04, macos-latest]
         go: ["1.27.x", "stable"]
     runs-on: ${{ matrix.os }}
     steps:

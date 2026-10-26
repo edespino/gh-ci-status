@@ -1,0 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# GitHub-hosted labels newer than some actionlint releases know about.
+# ubuntu-26.04 is listed at https://github.com/actions/runner-images#available-images
+self-hosted-runner:
+  labels:
+    - ubuntu-26.04
