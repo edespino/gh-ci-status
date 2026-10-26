@@ -29,9 +29,10 @@ type ReportRow struct {
 	FailedRuns    int        `json:"failed_runs,omitempty"` // failing: red runs since the last green
 	NeverGreen    bool       `json:"never_green,omitempty"` // failing: no green run in its whole history
 	FailedStep    *Link      `json:"failed_step,omitempty"` // failing: first failed step and its log
-	Latest        *RunRef    `json:"latest,omitempty"`
-	Previous      *RunRef    `json:"previous,omitempty"`   // running: newest completed run
-	LastGreen     *RunRef    `json:"last_green,omitempty"` // failing: newest success before the red runs
+	Latest        *RunRef    `json:"latest,omitempty"`      // the run that decides state: the newest finished one, or for "running" the newest
+	InProgress    *RunRef    `json:"in_progress,omitempty"` // the newest run, when it has not finished
+	Previous      *RunRef    `json:"previous,omitempty"`    // with in_progress, the newest finished run (the same as latest); kept for readers of v0.2.0 and earlier
+	LastGreen     *RunRef    `json:"last_green,omitempty"`  // failing: newest success before the red runs
 	HistoryURL    string     `json:"history_url"`
 	Error         string     `json:"error,omitempty"`
 }
@@ -58,9 +59,12 @@ func NewReport(repos []string, rows []Row, now time.Time) Report {
 		out := ReportRow{
 			Repo: r.Repo, Workflow: r.Watch.Workflow, Name: r.Name, Branch: r.Watch.Branch, State: r.State,
 			Conclusion: r.Conclusion, WorkflowState: r.WorkflowState, Age: r.Age, FailedRuns: r.FailedRuns, Error: r.Err,
-			Latest: runRef(r.Latest), Previous: runRef(r.Previous), LastGreen: runRef(r.LastGreen),
+			Latest: runRef(r.Latest), InProgress: runRef(r.InProgress), LastGreen: runRef(r.LastGreen),
 			HistoryURL: HistoryURL(r.Repo, r.Watch.Workflow, r.Watch.Branch),
 			NeverGreen: r.State == Failing && r.LastGreen == nil && r.AllHistory,
+		}
+		if r.InProgress != nil && r.State != Running {
+			out.Previous = runRef(r.Latest)
 		}
 		if !r.RedSince.IsZero() {
 			t := r.RedSince.UTC()

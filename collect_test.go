@@ -85,6 +85,24 @@ func TestCollectJobsOnlyForRed(t *testing.T) {
 	}
 }
 
+// A red workflow with a new run in progress stays red, and its failed step
+// comes from the newest finished run, not the one still going.
+func TestCollectRedWithRunInProgress(t *testing.T) {
+	f := fakegithub.New(t)
+	serveWorkflow(f, "red.yml", "R", "main",
+		runJSON(141, 5, "main", "in_progress", "", "2026-10-24T11:00:00Z"),
+		runJSON(140, 4, "main", "completed", "failure", "2026-10-20T12:00:00Z"))
+	f.Handle("/repos/o/r/actions/runs/140/jobs?per_page=100", 200,
+		`{"jobs":[{"name":"test","conclusion":"failure","html_url":"https://github.com/o/r/actions/runs/140/job/8","steps":[]}]}`)
+	rows := Collect(context.Background(), testClient(f), fr, []Watch{{"red.yml", "main"}}, testNow)
+	if rows[0].State != Failing || rows[0].InProgress == nil || rows[0].FailedStep == nil || rows[0].FailedStep.Label != "test" {
+		t.Fatalf("row = %+v", rows[0])
+	}
+	if n := count(f.Requests(), "/runs/141/jobs"); n != 0 {
+		t.Errorf("read the jobs of the run in progress")
+	}
+}
+
 func TestCollectFailedJobWithoutFailedStep(t *testing.T) {
 	f := fakegithub.New(t)
 	serveWorkflow(f, "red.yml", "R", "main", runJSON(130, 3, "main", "completed", "failure", "2026-10-20T12:00:00Z"))

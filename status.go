@@ -17,7 +17,7 @@ type State string
 const (
 	Failing  State = "failing"
 	Error    State = "error"
-	Running  State = "running"
+	Running  State = "running" // no run has finished yet
 	Other    State = "other"
 	None     State = "none"
 	Passing  State = "passing"
@@ -37,9 +37,9 @@ type Row struct {
 	Name       string
 	State      State
 	Conclusion string // for Other: GitHub's conclusion word
-	Latest     *Run
-	Previous   *Run // for Running: newest completed run
-	LastGreen  *Run // for Failing: newest success before the red streak
+	Latest     *Run   // the run that decides State: the newest finished one, or for Running the newest
+	InProgress *Run   // the newest run, when it has not finished; always set for Running
+	LastGreen  *Run   // for Failing: newest success before the red streak
 	RedSince   time.Time
 	Age        string // "71 days"
 	FailedRuns int
@@ -62,7 +62,9 @@ var (
 // head branch is the watch's branch and whose head repository is repo (in any
 // letter case, as GitHub compares names) count:
 // runs from forks never decide a row, and neither do pull_request runs (they
-// test a merge into another branch).
+// test a merge into another branch). The newest finished run decides the
+// state, so a red workflow stays red while it runs again; the newest run, when
+// it has not finished, is kept as InProgress.
 func Evaluate(repo string, w Watch, name string, runs []Run, total int, now time.Time) Row {
 	row := Row{Repo: repo, Watch: w, Name: name}
 	var mine []Run
@@ -82,14 +84,17 @@ func Evaluate(repo string, w Watch, name string, runs []Run, total int, now time
 			done = append(done, r)
 		}
 	}
-	latest := mine[0]
+	if newest := mine[0]; newest.Status != "completed" {
+		row.InProgress = &newest
+	}
+	if len(done) == 0 {
+		row.State = Running
+		row.Latest = row.InProgress
+		return row
+	}
+	latest := done[0]
 	row.Latest = &latest
 	switch {
-	case latest.Status != "completed":
-		row.State = Running
-		if len(done) > 0 {
-			row.Previous = &done[0]
-		}
 	case green[latest.Conclusion]:
 		row.State = Passing
 	case red[latest.Conclusion]:
@@ -190,15 +195,20 @@ func SortRows(rows []Row) []Row {
 }
 
 // Summary is one short line: how many are red (and the oldest red's age),
-// then the other states present, passing and disabled last.
+// how many have a run in progress, then the other states present, passing
+// and disabled last.
 func Summary(rows []Row) string {
 	if len(rows) == 0 {
 		return "nothing watched"
 	}
 	counts := map[State]int{}
 	var oldest *Row
+	running := 0
 	for i, r := range rows {
 		counts[r.State]++
+		if r.InProgress != nil {
+			running++
+		}
 		if r.State == Failing && (oldest == nil || r.RedSince.Before(oldest.RedSince)) {
 			oldest = &rows[i]
 		}
@@ -207,11 +217,13 @@ func Summary(rows []Row) string {
 	if oldest != nil {
 		parts[0] = fmt.Sprintf("%d red, oldest %s", counts[Failing], oldest.Age)
 	}
+	if running > 0 {
+		parts = append(parts, fmt.Sprintf("%d running", running))
+	}
 	for _, s := range []struct {
 		state State
 		text  func(n int) string
 	}{
-		{Running, func(n int) string { return fmt.Sprintf("%d running", n) }},
 		{Error, func(n int) string { return fmt.Sprintf("%d unreadable", n) }},
 		{Other, func(n int) string { return plural(n, "other result") }},
 		{None, func(n int) string { return fmt.Sprintf("%d with no runs", n) }},

@@ -20,7 +20,7 @@ button.btn,.btn{display:inline-flex;align-items:center;gap:6px;background:var(--
 .row{display:grid;grid-template-columns:300px 140px 1fr;gap:12px;align-items:baseline;background:var(--row);border-left:8px solid var(--other);border-radius:4px;padding:8px 12px;margin:5px 0}
 .row.bad{border-left-color:var(--bad);background:var(--badbg)}.row.off{opacity:.55}.row.ok{border-left-color:var(--ok)}.row.run{border-left-color:var(--run)}
 .n small{display:block;color:var(--muted);font:12px ui-monospace,Menlo,monospace}
-.d{color:var(--muted)}.age{color:var(--bad)}.bad .s{color:var(--bad);font-weight:600}.ok .s{color:var(--ok)}.run .s{color:var(--run)}
+.d{color:var(--muted)}.in-progress,.in-progress a{color:var(--run)}.age{color:var(--bad)}.bad .s{color:var(--bad);font-weight:600}.ok .s{color:var(--ok)}.run .s{color:var(--run)}
 .error{background:var(--badbg);border-left:8px solid var(--bad);padding:8px 12px;border-radius:4px}
 .tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:4px 0 10px}
 input[type=search]{flex:1 1 240px;padding:5px 8px;font:inherit}
@@ -45,23 +45,23 @@ a{color:var(--link)}.gap{height:12px}
 </div>
 <p class="sub" id="no-match" hidden>No workflow matches the filter.</p>
 {{end}}{{range $i, $r := .Rows}}{{if gapAt $.Rows $i}}<div class="gap"></div>{{end}}
-<div class="row {{stateClass $r.State}}" data-state="{{$r.State}}" data-name="{{$r.Name}} {{$r.Watch.Workflow}} {{$r.Watch.Branch}} {{$r.Repo}}">
+<div class="row {{stateClass $r.State}}" data-state="{{$r.State}}"{{if $r.InProgress}} data-running="1"{{end}} data-name="{{$r.Name}} {{$r.Watch.Workflow}} {{$r.Watch.Branch}} {{$r.Repo}}">
 <span class="n"><a href="{{historyURL $r.Repo $r.Watch.Workflow $r.Watch.Branch}}">{{$r.Name}}</a><small>{{if $.MultiRepo}}{{$r.Repo}} · {{end}}{{$r.Watch.Workflow}} · {{$r.Watch.Branch}}</small></span>
 {{- if eq $r.State "failing"}}
 <a class="s" href="{{$r.Latest.HTMLURL}}">failing #{{$r.Latest.RunNumber}}</a>
 <span class="d"><b class="age">red {{$r.Age}}</b>{{with $r.FailedStep}} · failed at <a href="{{.URL}}">{{.Label}}</a>{{end}}
 {{- if $r.LastGreen}} · {{plural $r.FailedRuns "failed run"}} since last green <a href="{{$r.LastGreen.HTMLURL}}">#{{$r.LastGreen.RunNumber}} {{localTime $r.LastGreen.CreatedAt}}</a>
 {{- else if $r.AllHistory}} · never green on {{$r.Watch.Branch}} · {{plural $r.FailedRuns "failed run"}}
-{{- else}} · no green in the last {{plural $r.FailedRuns (printf "%s run" $r.Watch.Branch)}}{{end}}</span>
+{{- else}} · no green in the last {{plural $r.FailedRuns (printf "%s run" $r.Watch.Branch)}}{{end}}{{template "in-progress" $r}}</span>
 {{- else if eq $r.State "running"}}
 <a class="s" href="{{$r.Latest.HTMLURL}}">running #{{$r.Latest.RunNumber}}</a>
-<span class="d">started {{localTime (started $r.Latest)}}{{with $r.Previous}} · previous: {{outcome .}} <a href="{{.HTMLURL}}">#{{.RunNumber}}</a>{{end}}</span>
+<span class="d">started {{localTime (started $r.Latest)}}</span>
 {{- else if eq $r.State "passing"}}
 <a class="s" href="{{$r.Latest.HTMLURL}}">passing #{{$r.Latest.RunNumber}}</a>
-<span class="d">{{localTime (started $r.Latest)}}</span>
+<span class="d">{{localTime (started $r.Latest)}}{{template "in-progress" $r}}</span>
 {{- else if eq $r.State "other"}}
 <a class="s" href="{{$r.Latest.HTMLURL}}">{{$r.Conclusion}} #{{$r.Latest.RunNumber}}</a>
-<span class="d">{{localTime (started $r.Latest)}}</span>
+<span class="d">{{localTime (started $r.Latest)}}{{template "in-progress" $r}}</span>
 {{- else if eq $r.State "disabled"}}
 <span class="s">disabled</span>
 <span class="d">turned off on GitHub ({{$r.WorkflowState}}){{with $r.Latest}} · last run: {{outcome .}} <a href="{{.HTMLURL}}">#{{.RunNumber}}</a>{{end}}</span>
@@ -90,7 +90,8 @@ a{color:var(--link)}.gap{height:12px}
   function apply() {
     var q = input.value.toLowerCase(), shown = 0;
     rows.forEach(function (r) {
-      var show = r.dataset.name.toLowerCase().indexOf(q) !== -1 && (mode === "all" || r.dataset.state === mode);
+      // Running matches a run in progress beside any result, as well as the state.
+      var show = r.dataset.name.toLowerCase().indexOf(q) !== -1 && (mode === "all" || r.dataset.state === mode || (mode === "running" && r.dataset.running === "1"));
       r.hidden = !show;
       if (show) { shown++; }
     });
@@ -120,3 +121,4 @@ a{color:var(--link)}.gap{height:12px}
 {{template "busy" .}}
 </body>
 </html>
+{{define "in-progress"}}{{with .InProgress}} · <span class="in-progress"><a href="{{.HTMLURL}}">running #{{.RunNumber}}</a>, started {{localTime (started .)}}</span>{{end}}{{end}}

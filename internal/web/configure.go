@@ -141,5 +141,8 @@ func rowStatus(r cistatus.Row) RowStatus {
 	case cistatus.Disabled:
 		s.Text = "turned off on GitHub (" + r.WorkflowState + ")"
 	}
+	if r.InProgress != nil && r.State != cistatus.Running {
+		s.Text += fmt.Sprintf(" · running #%d", r.InProgress.RunNumber)
+	}
 	return s
 }

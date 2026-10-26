@@ -41,27 +41,30 @@ A row is decided by `Evaluate`:
    runs whose head branch is the watched branch and whose head repository is the watched
    repository count. Repository names compare without regard to letter case, as on GitHub.
    Runs from forks and `pull_request` or `pull_request_target` runs never decide a row.
-2. The newest counting run decides the state: running until it completes, then passing
-   (`success`), failing (`failure`, `timed_out`, `startup_failure`) or other (any other
-   conclusion, shown by name).
+2. The newest finished counting run decides the state: passing (`success`), failing
+   (`failure`, `timed_out`, `startup_failure`) or other (any other conclusion, shown by name).
+   When the newest counting run has not finished, it is kept as the row's run in progress, so a
+   red workflow stays red, and sorted with the reds, while it runs again. Only when no
+   counting run has finished is the row running.
 3. For a failing row: the last green run is the newest success; red since is the oldest red
    run after it; failed runs counts the red runs after it. When GitHub returned the whole
    history and none of it is green, the row is "never green".
-4. For a failing row, the jobs of the newest run are read once to find the first failed job
-   and step, linked to the job's log.
+4. For a failing row, the jobs of the newest finished run are read once to find the first
+   failed job and step, linked to the job's log.
 
 5. When GitHub reports the workflow as turned off (`disabled_manually`, `disabled_inactivity`
    or `disabled_fork`), the row is disabled instead: not red, no jobs read, its last run kept
    for the link. Configure takes this from the workflow list it already read.
 
 Rows sort reds first (oldest red at the top), then unreadable, running, other, no runs, passing,
-disabled.
+disabled. The summary's "running" count and the status page's **Running** button count every
+row with a run in progress, whatever its state.
 
 ## Requests
 
 | Action | GitHub requests |
 |---|---|
-| Status page, `gh ci-status`, `--json` | Per workflow file: its name. Per watch: its runs on the branch. Per red row: the jobs of its newest run. At most 8 at a time. |
+| Status page, `gh ci-status`, `--json` | Per workflow file: its name. Per watch: its runs on the branch. Per red row: the jobs of its newest finished run. At most 8 at a time. |
 | Configure, first visit or after Refresh | The repository, its workflow list (all pages) and two pages of recent runs, at the same time. Then one runs request per status dot, 6 at a time, from the page's script. |
 | Configure, later visits | None: the workflow list, recent runs and status dots are kept until Refresh. Failed reads are not kept. The status page replaces the kept status of each pair it reads. |
 | Setup page | The signed-in account (`/user`). |

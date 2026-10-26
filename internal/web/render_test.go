@@ -71,18 +71,39 @@ func TestStatusEscapes(t *testing.T) {
 }
 
 func TestRunningAndNeverGreenText(t *testing.T) {
-	running := Row{Repo: testRepo, Watch: mainWatch, Name: "Busy", State: Running,
-		Latest:   runAt(41, 9, "main", "in_progress", "", "2026-10-24T11:30:00Z"),
-		Previous: runAt(40, 8, "main", "completed", "success", "2026-10-23T11:30:00Z")}
+	first := runAt(41, 9, "main", "in_progress", "", "2026-10-24T11:30:00Z")
+	running := Row{Repo: testRepo, Watch: mainWatch, Name: "Busy", State: Running, Latest: first, InProgress: first}
 	never := Row{Repo: testRepo, Watch: mainWatch, Name: "Never", State: Failing, Age: "72 days", FailedRuns: 12, AllHistory: true,
 		Latest: runAt(3, 3, "main", "completed", "failure", "2026-10-20T12:00:00Z")}
 	partial := never
 	partial.Name, partial.AllHistory, partial.FailedRuns = "Partial", false, 100
 	html := statusHTML(t, never, partial, running)
-	for _, want := range []string{"running #9", "previous: passing", "never green on main", "12 failed runs", "no green in the last 100 main runs"} {
+	for _, want := range []string{">running #9</a>", "started Oct 24, 4:30 AM PDT", "never green on main", "12 failed runs", "no green in the last 100 main runs"} {
 		if !strings.Contains(html, want) {
 			t.Errorf("page lacks %q", want)
 		}
+	}
+}
+
+// A row with a run in progress keeps its result and names the run in
+// progress beside it, linked.
+func TestRunInProgressText(t *testing.T) {
+	rerun := redRow()
+	rerun.InProgress = runAt(121, 21, "release/x", "in_progress", "", "2026-10-24T11:00:00Z")
+	green := Row{Repo: testRepo, Watch: mainWatch, Name: "Green", State: Passing,
+		Latest:     runAt(50, 5, "main", "completed", "success", "2026-10-23T12:00:00Z"),
+		InProgress: runAt(51, 6, "main", "queued", "", "2026-10-24T11:10:00Z")}
+	html := statusHTML(t, rerun, green)
+	for _, want := range []string{
+		`>failing #20</a>`, `<a href="https://github.com/` + testRepo + `/actions/runs/121">running #21</a>, started Oct 24, 4:00 AM PDT`,
+		`>passing #5</a>`, `<a href="https://github.com/` + testRepo + `/actions/runs/51">running #6</a>, started Oct 24, 4:10 AM PDT`,
+	} {
+		if !strings.Contains(html, want) {
+			t.Errorf("page lacks %s", want)
+		}
+	}
+	if strings.Contains(statusHTML(t, redRow()), "running #") {
+		t.Error("a row without a run in progress names one")
 	}
 }
 
@@ -370,6 +391,23 @@ func TestStatusFilterBar(t *testing.T) {
 	}
 	if empty := statusHTML(t); strings.Contains(empty, `id="filter"`) {
 		t.Error("no filter when nothing is watched")
+	}
+	// Running counts every row with a run in progress, whatever its result.
+	rerun := redRow()
+	rerun.InProgress = runAt(121, 21, "release/x", "in_progress", "", "2026-10-24T11:00:00Z")
+	busy := green
+	busy.InProgress = runAt(51, 6, "main", "queued", "", "2026-10-24T11:10:00Z")
+	first := runAt(60, 1, "main", "queued", "", "2026-10-24T11:20:00Z")
+	never := Row{Repo: testRepo, Watch: Watch{Workflow: "new.yml", Branch: "main"}, Name: "New", State: Running, Latest: first, InProgress: first}
+	html = statusHTML(t, rerun, busy, green, never)
+	for _, want := range []string{`data-filter="failing">Red 1<`, `data-filter="running">Running 3<`, `data-filter="passing">Passing 2<`,
+		`data-state="failing" data-running="1" data-name="Build B`} {
+		if !strings.Contains(html, want) {
+			t.Errorf("status page lacks %s", want)
+		}
+	}
+	if strings.Count(html, `data-running=`) != 3 {
+		t.Error("data-running only on rows with a run in progress")
 	}
 }
 

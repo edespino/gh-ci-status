@@ -63,13 +63,39 @@ func TestNeverGreenWhenWholeHistoryFetched(t *testing.T) {
 	}
 }
 
-func TestRunningKeepsPrevious(t *testing.T) {
+// A run in progress does not change a row's result: the newest finished run
+// decides it, and the run in progress is kept beside it.
+func TestRunInProgressKeepsLastResult(t *testing.T) {
 	runs := []Run{
-		mkRun(41, 9, "main", "in_progress", "", "2026-10-24T11:30:00Z", ""),
-		mkRun(40, 8, "main", "completed", "success", "2026-10-23T11:30:00Z", ""),
+		mkRun(42, 10, "main", "in_progress", "", "2026-10-24T11:30:00Z", ""),
+		mkRun(41, 9, "main", "completed", "failure", "2026-10-20T12:00:00Z", ""),
+		mkRun(40, 8, "main", "completed", "failure", "2026-10-14T12:00:00Z", ""),
+		mkRun(39, 7, "main", "completed", "success", "2026-10-10T12:00:00Z", ""),
+	}
+	r := Evaluate(testRepo, mainWatch, "B", runs, 4, testNow)
+	if r.State != Failing || r.Latest.RunNumber != 9 || r.InProgress == nil || r.InProgress.RunNumber != 10 {
+		t.Fatalf("row = %+v", r)
+	}
+	if r.Age != "10 days" || r.FailedRuns != 2 || r.LastGreen == nil || r.LastGreen.RunNumber != 7 {
+		t.Fatalf("row = %+v", r)
+	}
+	green := Evaluate(testRepo, mainWatch, "B", []Run{runs[0], runs[3]}, 2, testNow)
+	if green.State != Passing || green.Latest.RunNumber != 7 || green.InProgress == nil || green.InProgress.RunNumber != 10 {
+		t.Fatalf("row = %+v", green)
+	}
+	if done := Evaluate(testRepo, mainWatch, "B", runs[1:], 3, testNow); done.InProgress != nil {
+		t.Fatalf("no run in progress: %+v", done)
+	}
+}
+
+// Only a workflow that has not finished a run on the branch is "running".
+func TestRunningWithoutFinishedRun(t *testing.T) {
+	runs := []Run{
+		mkRun(43, 2, "main", "queued", "", "2026-10-24T11:40:00Z", ""),
+		mkRun(42, 1, "main", "in_progress", "", "2026-10-24T11:30:00Z", ""),
 	}
 	r := Evaluate(testRepo, mainWatch, "B", runs, 2, testNow)
-	if r.State != Running || r.Latest.RunNumber != 9 || r.Previous == nil || r.Previous.RunNumber != 8 {
+	if r.State != Running || r.Latest == nil || r.Latest.RunNumber != 2 || r.InProgress == nil || r.InProgress.RunNumber != 2 {
 		t.Fatalf("row = %+v", r)
 	}
 }
@@ -159,7 +185,8 @@ func TestSummary(t *testing.T) {
 	rows := []Row{
 		{Name: "Build App", Watch: Watch{Branch: "main"}, State: Failing, Age: "71 days", RedSince: ts("2026-08-14T12:00:00Z")},
 		{Name: "Nightly backfill", Watch: Watch{Branch: "main"}, State: Failing, Age: "120 days", RedSince: ts("2026-06-26T12:00:00Z")},
-		{Name: "Busy", State: Running},
+		{Name: "Rerun", State: Failing, Age: "3 days", RedSince: ts("2026-10-21T12:00:00Z"), InProgress: &Run{}},
+		{Name: "Busy", State: Running, InProgress: &Run{}},
 		{Name: "Gone", State: Error},
 		{Name: "Cancelled", State: Other},
 		{Name: "Never", State: None},
@@ -167,7 +194,7 @@ func TestSummary(t *testing.T) {
 		{Name: "Docs", State: Passing},
 		{Name: "Retired", State: Disabled},
 	}
-	if got := Summary(rows); got != "2 red, oldest 120 days · 1 running · 1 unreadable · 1 other result · 1 with no runs · 2 passing · 1 disabled" {
+	if got := Summary(rows); got != "3 red, oldest 120 days · 2 running · 1 unreadable · 1 other result · 1 with no runs · 2 passing · 1 disabled" {
 		t.Fatalf("summary = %q", got)
 	}
 	green := make([]Row, 7)

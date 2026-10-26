@@ -468,6 +468,25 @@ const shownJS = `function shown() { return Array.prototype.filter.call(document.
 function gapShown() { var g = document.querySelector(".gap"); return g && getComputedStyle(g).display !== "none" ? "gap" : "no-gap"; }
 `
 
+// Running shows every row with a run in progress, whatever its result; Red
+// still shows a red row while it runs again.
+func TestStatusRunningFilter(t *testing.T) {
+	chrome(t)
+	rows := filterRows()
+	rows[0].InProgress = runAt(121, 21, "release/x", "in_progress", "", "2026-10-24T11:00:00Z")
+	rows[1].InProgress = runAt(52, 7, "main", "queued", "", "2026-10-24T11:10:00Z")
+	got := statusPage(t, rows, ``, shownJS+`
+  var r = [];
+  ["running", "failing", "passing"].forEach(function (m) {
+    document.querySelector('[data-filter="' + m + '"]').click();
+    r.push(m + ":" + shown());
+  });
+  document.body.setAttribute("data-result", r.join(" / "));`)
+	if got != "running:Build,Green / failing:Build / passing:Green,Deploy" {
+		t.Fatalf("got %q", got)
+	}
+}
+
 func TestStatusFilterNarrowsRows(t *testing.T) {
 	chrome(t)
 	got := statusPage(t, filterRows(), ``, shownJS+`

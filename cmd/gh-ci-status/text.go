@@ -34,6 +34,9 @@ func writeText(w io.Writer, rows []cistatus.Row, multiRepo bool) {
 		case cistatus.Disabled:
 			detail = "turned off on GitHub (" + r.WorkflowState + ")"
 		}
+		if r.InProgress != nil && r.State != cistatus.Running {
+			detail += fmt.Sprintf(" · running #%d since %s", r.InProgress.RunNumber, localTime(started(r.InProgress)))
+		}
 		name := r.Name
 		if multiRepo {
 			name += " (" + r.Repo + ")"

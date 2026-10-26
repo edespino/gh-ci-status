@@ -24,11 +24,15 @@ For every watched workflow on a branch, one row:
 - **failing:** red for how long, the failed step (linked to its log), how many runs failed
   since the last green one, and a link to that green run. "Never green" when no run in the
   workflow's history on that branch passed.
-- **running:** since when, and the previous result.
+- **running:** a workflow that has not finished a run on that branch yet, and since when.
 - **passing**, **cancelled** and other results, with the time of the run.
 - **no runs** on that branch yet, or **error** when GitHub could not be read.
 - **disabled** (greyed, at the bottom) when the workflow is turned off on GitHub, with its last
   run. Retiring a workflow by disabling it takes it off the red list.
+
+A run in progress does not change a row: a red workflow stays red, at the same place, while it
+runs again, and the row adds "running #N, started ..." with a link to that run. The **Running**
+button shows every row with a run in progress, whatever its result.
 
 Every name links to the workflow's run history on that branch.
 
@@ -129,6 +133,10 @@ The JSON report has stable field names:
 ```
 
 `state` is one of `failing`, `error`, `running`, `other`, `none`, `passing`, `disabled`.
+`latest` is the run that decides it: the newest finished run, or for `running` (no run finished
+yet) the newest run. A row with a run in progress also has `in_progress`, that run, and, unless
+it is `running`, `previous`, the same run as `latest` (kept for readers of v0.2.0 and earlier,
+where a run in progress made every row `running`).
 A `disabled` row also has `workflow_state`, GitHub's word for it (for example `disabled_manually`).
 
 ## How it works
@@ -158,9 +166,10 @@ flowchart LR
 - **On demand, read only.** The status page reads GitHub when you open or refresh it. The
   terminal commands read it when you run them. Nothing polls in the background, and nothing
   is ever written to GitHub.
-- **Which run counts.** A row is decided by the newest run of the workflow whose branch is the
-  watched branch and whose repository is the watched repository. Runs from forks and
-  `pull_request` runs are ignored: they test someone else's code or a merge into another branch.
+- **Which run counts.** A row is decided by the newest finished run of the workflow whose branch
+  is the watched branch and whose repository is the watched repository, so a run in progress
+  never hides a red one. Runs from forks and `pull_request` runs are ignored: they test someone
+  else's code or a merge into another branch.
 - **Red since.** The first red run after the last green one. When the whole history on that
   branch has no green run, the row says "never green".
 - **Configure keeps what it read.** The workflow list, recent branches and status dots are

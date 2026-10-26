@@ -55,10 +55,14 @@ type FilterButton struct {
 }
 
 // Filters are the state buttons for the states present, in row order.
+// Running counts every row with a run in progress, whatever its result.
 func (p StatusPage) Filters() []FilterButton {
 	counts := map[cistatus.State]int{}
 	for _, r := range p.Rows {
 		counts[r.State]++
+		if r.InProgress != nil && r.State != cistatus.Running {
+			counts[cistatus.Running]++
+		}
 	}
 	var out []FilterButton
 	for _, s := range []struct {

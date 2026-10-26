@@ -109,6 +109,18 @@ func TestWriteText(t *testing.T) {
 		}
 	}
 	b.Reset()
+	rerun := red
+	rerun.InProgress = &cistatus.Run{ID: 121, RunNumber: 21, Status: "in_progress", RunStartedAt: mustTime("2026-10-24T11:00:00Z")}
+	first := &cistatus.Run{ID: 9, RunNumber: 1, Status: "queued", RunStartedAt: mustTime("2026-10-24T11:20:00Z"), HTMLURL: "https://github.com/" + testRepo + "/actions/runs/9"}
+	never := cistatus.Row{Repo: testRepo, Watch: w("new.yml", "main"), Name: "New", State: cistatus.Running, Latest: first, InProgress: first}
+	writeText(&b, []cistatus.Row{rerun, never}, false)
+	if line := strings.Split(b.String(), "\n")[1]; !strings.HasPrefix(line, "failing   Build B on release/x  red 10 days · running #21 since Oct 24, 4:00 AM PDT  https://") {
+		t.Errorf("red line with a run in progress = %q", line)
+	}
+	if line := strings.Split(b.String(), "\n")[2]; line != "running   New on main  running since Oct 24, 4:20 AM PDT  https://github.com/"+testRepo+"/actions/runs/9" {
+		t.Errorf("running line = %q", line)
+	}
+	b.Reset()
 	off := cistatus.Row{Repo: testRepo, Watch: w("old.yml", "main"), Name: "Old", State: cistatus.Disabled, WorkflowState: "disabled_manually",
 		Latest: run1(150, 9, "main", "failure", "2026-08-01T12:00:00Z")}
 	writeText(&b, []cistatus.Row{off}, false)

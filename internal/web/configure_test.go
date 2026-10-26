@@ -99,7 +99,10 @@ func TestRowStatusText(t *testing.T) {
 	failing := Row{Repo: testRepo, Watch: mainWatch, State: Failing, RedSince: ts("2026-10-14T12:00:00Z"),
 		Latest: runAt(120, 20, "main", "completed", "failure", "2026-10-20T12:00:00Z")}
 	passing := Row{Repo: testRepo, Watch: mainWatch, State: Passing, Latest: runAt(50, 5, "main", "completed", "success", "2026-10-23T12:00:00Z")}
-	running := Row{Repo: testRepo, Watch: mainWatch, State: Running, Latest: runAt(41, 9, "main", "in_progress", "", "2026-10-24T11:30:00Z")}
+	first := runAt(41, 9, "main", "in_progress", "", "2026-10-24T11:30:00Z")
+	running := Row{Repo: testRepo, Watch: mainWatch, State: Running, Latest: first, InProgress: first}
+	rerun := failing
+	rerun.InProgress = runAt(121, 21, "main", "in_progress", "", "2026-10-24T11:00:00Z")
 	other := Row{Repo: testRepo, Watch: mainWatch, State: Other, Conclusion: "cancelled", Latest: runAt(5, 5, "main", "completed", "cancelled", "2026-10-24T10:00:00Z")}
 	none := Row{Repo: testRepo, Watch: Watch{Workflow: "b.yml", Branch: "dev"}, State: None}
 	errRow := Row{Repo: testRepo, Watch: mainWatch, State: Error, Err: "GET /x: 404 Not Found"}
@@ -110,6 +113,7 @@ func TestRowStatusText(t *testing.T) {
 		{failing, "failing since Oct 14 (#20)", "https://github.com/" + testRepo + "/actions/runs/120"},
 		{passing, "passing · Oct 23, 5:00 AM PDT", "https://github.com/" + testRepo + "/actions/runs/50"},
 		{running, "running #9", "https://github.com/" + testRepo + "/actions/runs/41"},
+		{rerun, "failing since Oct 14 (#20) · running #21", "https://github.com/" + testRepo + "/actions/runs/120"},
 		{other, "cancelled #5", "https://github.com/" + testRepo + "/actions/runs/5"},
 		{none, "no run on dev", cistatus.HistoryURL(testRepo, "b.yml", "dev")},
 		{errRow, "GET /x: 404 Not Found", cistatus.HistoryURL(testRepo, "b.yml", "main")},
