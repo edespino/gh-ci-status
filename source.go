@@ -7,18 +7,15 @@ import "regexp"
 // SourceURL is where gh-ci-status's source code and issues live.
 const SourceURL = "https://github.com/edespino/gh-ci-status"
 
-var (
-	pseudoVersion  = regexp.MustCompile(`\d{14}-([0-9a-f]{12})$`) // v0.4.1-0.20261026182707-7d2679d4ffa4
-	releaseVersion = regexp.MustCompile(`^v\d+\.\d+\.\d+(-[0-9A-Za-z.]+)?$`)
-)
+// releaseVersion is a release's tag, such as v0.4.0 or v0.5.0-rc.1. A
+// development build's version (v0.4.1-0.20261026182707-7d2679d4ffa4) does
+// not match: its suffix holds a second hyphen.
+var releaseVersion = regexp.MustCompile(`^v\d+\.\d+\.\d+(-[0-9A-Za-z.]+)?$`)
 
 // SourceLink is the source of the given gh-ci-status version: a release's
-// tag, a development build's commit, else (a build with local changes, or
-// no version) the repository.
+// tag; anything else (a development build, whose commit may exist only on
+// the machine that built it, or no version) the repository.
 func SourceLink(version string) string {
-	if m := pseudoVersion.FindStringSubmatch(version); m != nil {
-		return SourceURL + "/tree/" + m[1]
-	}
 	if releaseVersion.MatchString(version) {
 		return SourceURL + "/tree/" + version
 	}

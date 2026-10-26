@@ -131,8 +131,8 @@ a gh-ci-status with `/shutdown`, is reported and left running.
 a context line with the repositories (and the branch, when every row is on the same one, which
 the lines then leave out), one rich text block per group (failing, unreadable,
 other, passing, disabled), and a context line with the time, the version and a link to that
-version's source (`SourceLink`: a release's tag, a development build's commit, else the
-repository; the pages' footers use it too). It does not repeat
+version's source (`SourceLink`: a release's tag, else the repository, since a development
+build's commit may not be on GitHub; the pages' footers use it too). It does not repeat
 the app's name, which Slack shows above the message. A group's block is its heading in bold
 and a bulleted list, one item per workflow (up to 40, then "and N more"); a failing
 workflow's details (failed step, runs since the last passing one, run in progress) are an
