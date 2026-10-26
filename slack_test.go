@@ -234,24 +234,24 @@ func TestSlackMessage(t *testing.T) {
 	want := strings.Join([]string{
 		rep.Summary,
 		testRepo,
-		"*Failing (3)*",
-		"• 🔴 *[Never](" + hist("n.yml", "main") + ")* on main · failing for 23 days · [#5](" + runsURL + "5)",
+		"*🔴 Failing (3)*",
+		"• *[Never](" + hist("n.yml", "main") + ")* on main · failing for 23 days · [#5](" + runsURL + "5)",
 		"  ◦ never passed on main · 3 failed runs",
-		"• 🔴 *[Build](" + hist("b.yml", "main") + ")* on main · failing for 10 days · [#20](" + runsURL + "120)",
-		"  ◦ failed at [Compile (build)](https://github.com/x/job/9) · 2 failed runs since the last passing run [#18](" + runsURL + "118) (Oct 10) · 🔄 running [#21](" + runsURL + "121)",
-		"• 🔴 *[A <b> & c](" + hist("o.yml", "main") + ")* on main · failing for 1 day · [#7](" + runsURL + "7)",
+		"• *[Build](" + hist("b.yml", "main") + ")* on main · failing for 10 days · [#20](" + runsURL + "120)",
+		"  ◦ failed at [Compile (build)](https://github.com/x/job/9) · 2 failed runs since the last passing run [#18](" + runsURL + "118) (Oct 10) · ⏳ running [#21](" + runsURL + "121)",
+		"• *[A <b> & c](" + hist("o.yml", "main") + ")* on main · failing for 1 day · [#7](" + runsURL + "7)",
 		"  ◦ no passing run in the last 1 main run",
-		"*Unreadable (1)*",
-		"• ⚪ [gone.yml](" + hist("gone.yml", "dev") + ") on dev: GET /x: 404 Not Found",
+		"*⚪ Unreadable (1)*",
+		"• [gone.yml](" + hist("gone.yml", "dev") + ") on dev: GET /x: 404 Not Found",
 		"*Other (3)*",
 		"• 🕒 [First](" + hist("f.yml", "main") + ") on main: waiting [#1](" + runsURL + "1)",
 		"• ⚪ [Cancelled](" + hist("c.yml", "main") + ") on main: cancelled [#5](" + runsURL + "50)",
 		"• ⚪ [Never ran](" + hist("e.yml", "dev") + ") on dev: no runs yet",
-		"*Passing (2)*",
-		"• 🟢 [Lint](" + hist("l.yml", "main") + ") · 🕒 waiting [#7](" + runsURL + "61)",
-		"• 🟢 [Docs](" + hist("d.yml", "main") + ")",
-		"*Disabled (1)*",
-		"• ⚪ [Old](" + hist("old.yml", "main") + ")",
+		"*🟢 Passing (2)*",
+		"• [Lint](" + hist("l.yml", "main") + ") · 🕒 waiting [#7](" + runsURL + "61)",
+		"• [Docs](" + hist("d.yml", "main") + ")",
+		"*⚪ Disabled (1)*",
+		"• [Old](" + hist("old.yml", "main") + ")",
 		"Oct 24, 5:00 AM PDT · gh-ci-status v0.4.0",
 	}, "\n")
 	if got != want {
@@ -264,6 +264,36 @@ func TestSlackMessage(t *testing.T) {
 	}
 }
 
+// When every row is on the same branch, it is named once, beside the
+// repositories, and not on each line.
+func TestSlackMessageOneBranch(t *testing.T) {
+	rows := []Row{
+		{Repo: testRepo, Watch: Watch{"n.yml", "main"}, Name: "Never", State: Failing, AllHistory: true,
+			Latest: run(5, 5, "main", "completed", "failure", "2026-10-20T12:00:00Z"), RedSince: ts("2026-10-01T12:00:00Z"), Age: "23 days", FailedRuns: 3},
+		{Repo: testRepo, Watch: Watch{"o.yml", "main"}, Name: "Some", State: Failing,
+			Latest: run(7, 7, "main", "completed", "failure", "2026-10-23T12:00:00Z"), RedSince: ts("2026-10-23T12:00:00Z"), Age: "1 day", FailedRuns: 2},
+		{Repo: testRepo, Watch: Watch{"c.yml", "main"}, Name: "Cancelled", State: Other, Conclusion: "cancelled", Latest: run(50, 5, "main", "completed", "cancelled", "2026-10-22T12:00:00Z")},
+	}
+	b, err := SlackMessage(NewReport([]string{testRepo}, SortRows(rows), testNow), la)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, all, _ := decodeSlack(t, b)
+	for _, want := range []string{
+		"\n" + testRepo + " · main\n",
+		"• *[Never](" + hist("n.yml", "main") + ")* · failing for 23 days · [#5](" + runsURL + "5)\n  ◦ never passed · 3 failed runs\n",
+		"  ◦ no passing run in the last 2 runs\n",
+		"• ⚪ [Cancelled](" + hist("c.yml", "main") + "): cancelled [#5](" + runsURL + "50)\n",
+	} {
+		if !strings.Contains(all, want) {
+			t.Errorf("message lacks %q:\n%s", want, all)
+		}
+	}
+	if strings.Contains(all, " on main") {
+		t.Error("the shared branch is repeated on the lines")
+	}
+}
+
 // With several repositories each row names its repository.
 func TestSlackMessageSeveralRepos(t *testing.T) {
 	rows := []Row{{Repo: "o/other", Watch: Watch{"b.yml", "main"}, Name: "Build", State: Passing, Latest: run(1, 1, "main", "completed", "success", "2026-10-23T12:00:00Z")}}
@@ -271,7 +301,7 @@ func TestSlackMessageSeveralRepos(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, all, _ := decodeSlack(t, b); !strings.Contains(all, "• 🟢 ["+"Build]("+HistoryURL("o/other", "b.yml", "main")+") (o/other)") || !strings.Contains(all, testRepo+", o/other") {
+	if _, all, _ := decodeSlack(t, b); !strings.Contains(all, "• [Build]("+HistoryURL("o/other", "b.yml", "main")+") (o/other)") || !strings.Contains(all, testRepo+", o/other · main") {
 		t.Errorf("message = %s", all)
 	}
 }
@@ -293,11 +323,11 @@ func TestSlackMessageLimits(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, all, _ := decodeSlack(t, b)
-	if strings.Count(all, "🔴") != 40 || !strings.Contains(all, "*Failing (60)*") || !strings.Contains(all, "• and 20 more\n*Passing (2000)*") {
-		t.Errorf("failing: %d listed", strings.Count(all, "🔴"))
+	if n := strings.Count(all, "• *[Failing]("); n != 40 || !strings.Contains(all, "*🔴 Failing (60)*") || !strings.Contains(all, "• and 20 more\n*🟢 Passing (2000)*") {
+		t.Errorf("failing: %d listed", n)
 	}
-	if strings.Count(all, "🟢") != 40 || !strings.Contains(all, "• and 1960 more\n") {
-		t.Errorf("passing: %d listed", strings.Count(all, "🟢"))
+	if n := strings.Count(all, "• [Passing]("); n != 40 || !strings.Contains(all, "• and 1960 more\n") {
+		t.Errorf("passing: %d listed", n)
 	}
 }
 

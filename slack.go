@@ -134,25 +134,40 @@ type slackItem struct{ line, details []slackElem }
 
 var slackEscape = strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;")
 
-// The marks in front of each workflow, coloured like the status page's
-// stripes, and for a run in progress the nearest built-in emoji to GitHub's
-// icons: arrows in a circle while it runs, a clock while it waits.
+// The marks on group headings, coloured like the status page's stripes, and
+// for a run in progress: an hourglass while it runs, a clock while it waits.
 const (
 	markFailing = "🔴"
 	markPassing = "🟢"
-	markRunning = "🔄"
+	markRunning = "⏳"
 	markWaiting = "🕒"
 	markOther   = "⚪"
 )
 
 // SlackMessage is the Slack message (an incoming webhook's JSON) for rep: the
-// summary as a heading, the repositories, then for each group (failing,
-// unreadable, other, passing, disabled) one rich text block with its heading
-// and a list, one item per workflow, a failing one's details indented under
-// it; last, when it was made, in loc. Slack shows the app's name, so the
-// message does not repeat it. Links go to GitHub only.
+// summary as a heading, the repositories (and the branch, when every row is
+// on the same one), then for each group (failing, unreadable, other,
+// passing, disabled) one rich text block with its marked heading and a list,
+// one item per workflow, a failing one's details indented under it; last,
+// when it was made, in loc. Slack shows the app's name, so the message does
+// not repeat it. Links go to GitHub only.
 func SlackMessage(rep Report, loc *time.Location) ([]byte, error) {
 	multi := len(rep.Repos) > 1
+	branch := "" // the branch every row is on, when they share one
+	for i, r := range rep.Rows {
+		if i == 0 {
+			branch = r.Branch
+		} else if r.Branch != branch {
+			branch = ""
+			break
+		}
+	}
+	on := func(r ReportRow) string {
+		if branch != "" {
+			return ""
+		}
+		return " on " + r.Branch
+	}
 	text := func(s string) slackElem { return slackElem{Type: "text", Text: s} }
 	link := func(url, s string) slackElem { return slackElem{Type: "link", URL: url, Text: s} }
 	run := func(r *RunRef) slackElem { return link(r.URL, fmt.Sprintf("#%d", r.Number)) }
@@ -166,7 +181,7 @@ func SlackMessage(rep Report, loc *time.Location) ([]byte, error) {
 		}
 		return []slackElem{e}
 	}
-	// inProgress is the run in progress, if any: its mark (🔄 running, 🕒
+	// inProgress is the run in progress, if any: its mark (⏳ running, 🕒
 	// waiting) and "running #N" or "waiting #N".
 	inProgress := func(r ReportRow) (mark string, els []slackElem) {
 		if r.InProgress == nil {
@@ -195,10 +210,9 @@ func SlackMessage(rep Report, loc *time.Location) ([]byte, error) {
 
 	var failing, unreadable, other, passing, disabled []slackItem
 	for _, r := range rep.Rows {
-		on := " on " + r.Branch
 		switch r.State {
 		case Failing:
-			it := slackItem{line: line(markFailing+" ", name(r, true), on+" · failing for "+r.Age)}
+			it := slackItem{line: line(name(r, true), on(r)+" · failing for "+r.Age)}
 			if r.Latest != nil {
 				it.line = line(it.line, " · ", run(r.Latest))
 			}
@@ -211,9 +225,13 @@ func SlackMessage(rep Report, loc *time.Location) ([]byte, error) {
 				details = append(details, line(plural(r.FailedRuns, "failed run")+" since the last passing run ", run(r.LastGreen),
 					" ("+r.LastGreen.CreatedAt.In(loc).Format("Jan 2")+")"))
 			case r.NeverGreen:
-				details = append(details, line("never passed"+on+" · "+plural(r.FailedRuns, "failed run")))
+				details = append(details, line("never passed"+on(r)+" · "+plural(r.FailedRuns, "failed run")))
 			default:
-				details = append(details, line("no passing run in the last "+plural(r.FailedRuns, r.Branch+" run")))
+				runs := r.Branch + " run"
+				if branch != "" {
+					runs = "run"
+				}
+				details = append(details, line("no passing run in the last "+plural(r.FailedRuns, runs)))
 			}
 			if mark, els := inProgress(r); els != nil {
 				details = append(details, line(mark+" ", els))
@@ -226,12 +244,12 @@ func SlackMessage(rep Report, loc *time.Location) ([]byte, error) {
 			}
 			failing = append(failing, it)
 		case Error:
-			unreadable = append(unreadable, slackItem{line: line(markOther+" ", name(r, false), on+": "+cut(r.Error, 300))})
+			unreadable = append(unreadable, slackItem{line: line(name(r, false), on(r)+": "+cut(r.Error, 300))})
 		case Running:
 			mark, els := inProgress(r)
-			other = append(other, slackItem{line: line(mark+" ", name(r, false), on+": ", els)})
+			other = append(other, slackItem{line: line(mark+" ", name(r, false), on(r)+": ", els)})
 		case Other:
-			it := slackItem{line: line(markOther+" ", name(r, false), on+": "+r.Conclusion)}
+			it := slackItem{line: line(markOther+" ", name(r, false), on(r)+": "+r.Conclusion)}
 			if r.Latest != nil {
 				it.line = line(it.line, " ", run(r.Latest))
 			}
@@ -240,26 +258,32 @@ func SlackMessage(rep Report, loc *time.Location) ([]byte, error) {
 			}
 			other = append(other, it)
 		case None:
-			other = append(other, slackItem{line: line(markOther+" ", name(r, false), on+": no runs yet")})
+			other = append(other, slackItem{line: line(markOther+" ", name(r, false), on(r)+": no runs yet")})
 		case Passing:
-			it := slackItem{line: line(markPassing+" ", name(r, false))}
+			it := slackItem{line: line(name(r, false))}
 			if mark, els := inProgress(r); els != nil {
 				it.line = line(it.line, " · "+mark+" ", els)
 			}
 			passing = append(passing, it)
 		case Disabled:
-			disabled = append(disabled, slackItem{line: line(markOther+" ", name(r, false))})
+			disabled = append(disabled, slackItem{line: line(name(r, false))})
 		}
 	}
 
 	blocks := []slackBlock{
 		{Type: "header", Text: &slackText{Type: "plain_text", Text: cut(rep.Summary, slackMaxHeader)}},
-		{Type: "context", Elements: []slackElem{{Type: "mrkdwn", Text: slackEscape.Replace(strings.Join(rep.Repos, ", "))}}},
 	}
+	where := strings.Join(rep.Repos, ", ")
+	if branch != "" {
+		where += " · " + branch
+	}
+	blocks = append(blocks, slackBlock{Type: "context", Elements: []slackElem{{Type: "mrkdwn", Text: slackEscape.Replace(where)}}})
+	// A group's mark is on its heading; Other mixes states, so its lines
+	// carry their own.
 	for _, g := range []struct {
 		heading string
 		items   []slackItem
-	}{{"Failing", failing}, {"Unreadable", unreadable}, {"Other", other}, {"Passing", passing}, {"Disabled", disabled}} {
+	}{{markFailing + " Failing", failing}, {markOther + " Unreadable", unreadable}, {"Other", other}, {markPassing + " Passing", passing}, {markOther + " Disabled", disabled}} {
 		if len(g.items) > 0 {
 			blocks = append(blocks, slackGroup(fmt.Sprintf("%s (%d)", g.heading, len(g.items)), g.items))
 		}
